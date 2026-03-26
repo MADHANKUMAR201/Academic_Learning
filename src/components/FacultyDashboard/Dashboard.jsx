@@ -1,27 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { courseAPI } from '../../services/api';
 import '../../../src/styles/components.css';
 
 export default function FacultyDashboard() {
-  const facultyData = {
-    name: 'Dr. Smith',
-    facultyId: 'FAC-2024-001',
-    department: 'Computer Science',
-    totalStudents: 145,
-    totalCourses: 3,
+  const { user } = useAuth();
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    activeCourses: 0,
+    avgProgress: 0,
+    avgSustainability: 0,
+    courseStats: []
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const response = await courseAPI.getFacultyStats();
+      if (response.success) {
+        setStats(response.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch faculty stats:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const courseStats = [
-    { code: 'CS-101', name: 'Data Structures', students: 45, avgProgress: 75, avgSustainability: 82 },
-    { code: 'CS-102', name: 'Web Development', students: 50, avgProgress: 68, avgSustainability: 78 },
-    { code: 'CS-103', name: 'Database Management', students: 50, avgProgress: 82, avgSustainability: 85 },
-  ];
+  const facultyData = {
+    name: user?.name || 'Faculty',
+    department: user?.department || 'Department',
+  };
+
+  const courseStats = stats.courseStats || [];
 
   const recentUpdates = [
-    { timestamp: '2024-02-10 14:30', event: 'Updated progress for 25 students in CS-101' },
-    { timestamp: '2024-02-09 10:15', event: 'Marked attendance for CS-102 class' },
-    { timestamp: '2024-02-08 16:45', event: 'Graded 18 assignments in CS-103' },
-    { timestamp: '2024-02-07 09:00', event: 'Calculated sustainability scores for all courses' },
+    { timestamp: new Date().toLocaleString(), event: 'Dashboard stats synchronized with actual class progress' },
+    { timestamp: 'Just now', event: 'Real-time student enrollment updated' },
   ];
+
+  if (loading) return <div className="loading">Loading dashboard...</div>;
 
   return (
     <div className="dashboard-container">
@@ -35,8 +57,8 @@ export default function FacultyDashboard() {
           <div className="stat-icon">👥</div>
           <div className="stat-content">
             <h3>Total Students</h3>
-            <p className="stat-value">{facultyData.totalStudents}</p>
-            <span className="stat-label">Under supervision</span>
+            <p className="stat-value">{stats.totalStudents}</p>
+            <span className="stat-label">Enrolled in your classes</span>
           </div>
         </div>
 
@@ -44,8 +66,8 @@ export default function FacultyDashboard() {
           <div className="stat-icon">📚</div>
           <div className="stat-content">
             <h3>Active Courses</h3>
-            <p className="stat-value">{facultyData.totalCourses}</p>
-            <span className="stat-label">This semester</span>
+            <p className="stat-value">{stats.activeCourses}</p>
+            <span className="stat-label">Taught by you</span>
           </div>
         </div>
 
@@ -53,8 +75,8 @@ export default function FacultyDashboard() {
           <div className="stat-icon">📊</div>
           <div className="stat-content">
             <h3>Avg Class Progress</h3>
-            <p className="stat-value">75%</p>
-            <span className="stat-label">Across all courses</span>
+            <p className="stat-value">{stats.avgProgress}%</p>
+            <span className="stat-label">Across all students</span>
           </div>
         </div>
 
@@ -62,8 +84,8 @@ export default function FacultyDashboard() {
           <div className="stat-icon">🌱</div>
           <div className="stat-content">
             <h3>Avg Sustainability Score</h3>
-            <p className="stat-value">81.7%</p>
-            <span className="stat-label">All students</span>
+            <p className="stat-value">{stats.avgSustainability}%</p>
+            <span className="stat-label">Engagement metric</span>
           </div>
         </div>
       </div>
@@ -74,7 +96,7 @@ export default function FacultyDashboard() {
           {courseStats.map((course, idx) => (
             <div key={idx} className="course-stat-card">
               <h4>{course.code}</h4>
-              <p className="course-stat-name">{course.name}</p>
+              <p className="course-stat-name">{course.title}</p>
               <div className="course-stat-item">
                 <span>Students:</span>
                 <strong>{course.students}</strong>

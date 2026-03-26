@@ -44,6 +44,7 @@ const userSchema = new mongoose.Schema(
       expectedGraduation: { type: String },
       cumulativeGPA: { type: Number },
       majorGPA: { type: Number },
+      attendancePercentage: { type: Number, default: 0 },
     },
     achievements: [{ type: String }],
     enrolledCourses: [
@@ -56,6 +57,12 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    dismissedReminders: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Assignment',
+      },
+    ],
   },
   { timestamps: true }
 );

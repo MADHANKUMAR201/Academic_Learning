@@ -1,0 +1,179 @@
+
+/* PREMIUM STUDENTS MODAL */
+.students-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: transparent;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 1rem;
+}
+
+.students-modal-content {
+  background: var(--bg-primary, #ffffff);
+  width: 90%;
+  max-width: 480px;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0,0,0,0.05);
+  padding: 2.5rem;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  animation: modalSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-light, #e2e8f0);
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: var(--text-primary, #0f172a);
+  font-weight: 800;
+  font-size: 1.5rem;
+  text-align: left;
+  letter-spacing: -0.025em;
+}
+
+.btn-close-modal {
+  background: var(--bg-tertiary, #f1f5f9);
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 1.25rem;
+  color: var(--text-secondary, #64748b);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.btn-close-modal:hover {
+  background: #fecaca;
+  color: #ef4444;
+  transform: rotate(90deg);
+}
+
+.student-list-container {
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.student-list-container::-webkit-scrollbar {
+  width: 6px;
+}
+.student-list-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+.student-list-container::-webkit-scrollbar-thumb {
+  background: var(--border-color, #cbd5e1);
+  border-radius: 10px;
+}
+
+.student-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.student-list-item {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  background: linear-gradient(to right, var(--bg-primary, #ffffff), var(--bg-tertiary, #f8fafc));
+  border-radius: 12px;
+  border: 1px solid var(--border-light, #e2e8f0);
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.student-list-item:hover {
+  border-color: var(--primary-color, #3b82f6);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+.student-avatar {
+  background: linear-gradient(135deg, var(--primary-light, #bfdbfe) 0%, var(--primary-color, #3b82f6) 100%);
+  color: white;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+}
+
+.student-info-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+}
+
+.student-name {
+  font-weight: 700;
+  color: var(--text-primary, #1e293b);
+  font-size: 1.05rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.student-email {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #64748b);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.student-badge {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success-color, #10b981);
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.no-students-message {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-secondary, #64748b);
+  background: var(--bg-tertiary, #f8fafc);
+  border-radius: 12px;
+  border: 2px dashed var(--border-color, #cbd5e1);
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalSlideUp {
+  from { opacity: 0; transform: translateY(30px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}

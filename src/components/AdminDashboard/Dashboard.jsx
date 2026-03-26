@@ -1,23 +1,57 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { adminAPI } from '../../services/api';
 import '../../../src/styles/components.css';
 
 export default function AdminDashboard() {
-  const adminData = {
-    totalUsers: 2450,
-    totalStudents: 1800,
-    totalFaculty: 180,
-    totalCourses: 95,
-    averageSustainabilityScore: 79,
-    systemHealth: 98,
-  };
+  const [adminData, setAdminData] = useState({
+    totalUsers: 0,
+    totalStudents: 0,
+    totalFaculty: 0,
+    totalCourses: 0,
+    averageSustainabilityScore: 0,
+    systemHealth: 100, // Still hardcoded as health is not yet implemented in backend
+  });
+  const [loading, setLoading] = useState(true);
 
-  const recentActivities = [
-    { timestamp: '2024-02-10 16:20', action: 'New user registration: STU-2024-0145', type: 'user-register' },
-    { timestamp: '2024-02-10 14:35', action: 'Course created: Advanced ML (CS-205)', type: 'course-create' },
-    { timestamp: '2024-02-10 12:15', action: 'Faculty updated grades for 35 students', type: 'grade-update' },
-    { timestamp: '2024-02-10 10:00', action: 'System backup completed successfully', type: 'system-backup' },
-    { timestamp: '2024-02-09 18:45', action: 'Sustainability report generated for all courses', type: 'report-gen' },
-  ];
+  const [recentActivities, setRecentActivities] = useState([
+    { timestamp: new Date().toLocaleDateString(), action: 'System online', type: 'system' },
+  ]);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, []);
+
+  const fetchAnalytics = async () => {
+    setLoading(true);
+    try {
+      const response = await adminAPI.getAnalyticsOverview();
+      if (response.success) {
+        setAdminData({
+          ...adminData,
+          ...response.data,
+          averageSustainabilityScore: Math.round(response.data.averageSustainabilityScore || 0)
+        });
+      }
+      
+      // Fetch users for recent activity (simplified version)
+      const usersRes = await adminAPI.getAllUsers();
+      if (usersRes.success) {
+        const sortedUsers = (usersRes.data || [])
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 5)
+          .map(u => ({
+            timestamp: new Date(u.createdAt).toLocaleString(),
+            action: `New user registration: ${u.name} (${u.role})`,
+            type: 'user-register'
+          }));
+        setRecentActivities(sortedUsers);
+      }
+    } catch (error) {
+      console.error('Failed to fetch analytics:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="dashboard-container">

@@ -1,24 +1,79 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { progressAPI } from '../../services/api';
 import '../../../src/styles/components.css';
 
 export default function StudentProgress() {
   const [progressData, setProgressData] = useState({
-    overallProgress: 72,
-    courseProgress: [
-      { course: 'Data Structures', progress: 75, target: 100 },
-      { course: 'Web Development', progress: 60, target: 100 },
-      { course: 'Database Management', progress: 85, target: 100 },
-      { course: 'Machine Learning', progress: 100, target: 100 },
-      { course: 'Sustainability in Tech', progress: 70, target: 100 },
-    ],
+    overallProgress: 0,
+    courseProgress: [],
     academicMetrics: {
-      semesterGPA: 3.8,
-      cumulativeGPA: 3.75,
-      targetGPA: 3.8,
-      completedCredits: 95,
-      requiredCredits: 120,
+      semesterGPA: 0,
+      cumulativeGPA: 0,
+      targetGPA: 4.0,
+      completedCredits: 0,
+      requiredCredits: 0,
     },
   });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProgress();
+  }, []);
+
+  const fetchProgress = async () => {
+    setLoading(true);
+    try {
+      const response = await progressAPI.getMyProgress();
+      if (response.success && response.data) {
+        const data = response.data;
+        const totalCourses = data.length;
+        
+        // Calculate overall stats
+        let totalCompleted = 0;
+        let totalAsgns = 0;
+        let totalGrade = 0;
+        let totalSustain = 0;
+
+        const courseProgress = data.map(p => {
+          const progressPerc = p.totalAssignments > 0 
+            ? Math.round((p.completedAssignments / p.totalAssignments) * 100) 
+            : 0;
+          
+          totalCompleted += p.completedAssignments;
+          totalAsgns += p.totalAssignments;
+          totalGrade += p.overallGrade;
+          totalSustain += p.sustainabilityScore;
+
+          return {
+            course: p.course?.title || 'Unknown Course',
+            progress: progressPerc,
+            target: 100
+          };
+        });
+
+        const avgProgress = totalAsgns > 0 ? Math.round((totalCompleted / totalAsgns) * 100) : 0;
+        const avgGPA = totalCourses > 0 ? (totalGrade / totalCourses / 25).toFixed(2) : 0;
+
+        setProgressData({
+          overallProgress: avgProgress,
+          courseProgress: courseProgress,
+          academicMetrics: {
+            semesterGPA: avgGPA,
+            cumulativeGPA: avgGPA, // Simplified
+            targetGPA: 3.8,
+            completedCredits: totalCourses * 3, // Assuming 3 credits per course
+            requiredCredits: 120,
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch progress:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <div className="loading">Loading progress...</div>;
 
   return (
     <div className="progress-container">

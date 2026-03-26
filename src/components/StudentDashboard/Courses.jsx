@@ -1,108 +1,115 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { courseAPI } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import '../../../src/styles/components.css';
 
 export default function StudentCourses() {
-  const [courses, setCourses] = useState([
-    {
-      id: 1,
-      code: 'CS-101',
-      name: 'Data Structures',
-      instructor: 'Dr. Smith',
-      credits: 3,
-      status: 'In Progress',
-      progress: 75,
-      grade: 'A',
-      startDate: '2024-01-15',
-    },
-    {
-      id: 2,
-      code: 'CS-102',
-      name: 'Web Development',
-      instructor: 'Prof. Johnson',
-      credits: 3,
-      status: 'In Progress',
-      progress: 60,
-      grade: 'B+',
-      startDate: '2024-01-18',
-    },
-    {
-      id: 3,
-      code: 'CS-103',
-      name: 'Database Management',
-      instructor: 'Dr. Williams',
-      credits: 4,
-      status: 'In Progress',
-      progress: 85,
-      grade: 'A-',
-      startDate: '2024-01-20',
-    },
-    {
-      id: 4,
-      code: 'CS-104',
-      name: 'Machine Learning',
-      instructor: 'Prof. Brown',
-      credits: 4,
-      status: 'Completed',
-      progress: 100,
-      grade: 'A',
-      startDate: '2023-09-01',
-    },
-    {
-      id: 5,
-      code: 'CSE-105',
-      name: 'Sustainability in Tech',
-      instructor: 'Dr. Green',
-      credits: 3,
-      status: 'In Progress',
-      progress: 70,
-      grade: 'A',
-      startDate: '2024-02-01',
-    },
-  ]);
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { user } = useAuth();
+
+  // Fetch courses on component mount
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  const fetchCourses = async () => {
+    try {
+      setLoading(true);
+      const response = await courseAPI.getAllCourses();
+      if (response.success) {
+        setCourses(response.data);
+      } else {
+        setError(response.message || 'Failed to fetch courses');
+      }
+    } catch (err) {
+      setError('Failed to connect to server');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEnroll = async (courseId) => {
+    try {
+      const response = await courseAPI.enrollCourse(courseId);
+      if (response.success) {
+        // Refresh courses to show updated enrollment
+        fetchCourses();
+      } else {
+        alert(response.message || 'Failed to enroll in course');
+      }
+    } catch (err) {
+      alert('Failed to enroll in course');
+    }
+  };
 
   return (
     <div className="courses-container">
       <div className="section-header">
-        <h2>My Courses</h2>
-        <p>Total Enrolled: {courses.length} | Credits: {courses.reduce((sum, c) => sum + c.credits, 0)}</p>
+        <h2>Available Courses</h2>
+        <p>Total Courses: {courses.length}</p>
       </div>
 
+      {loading && <div className="loading">Loading courses...</div>}
+      {error && <div className="error">{error}</div>}
+
       <div className="courses-grid">
-        {courses.map((course) => (
-          <div key={course.id} className="course-card">
-            <div className="course-header">
-              <h3>{course.code}</h3>
-              <span className={`course-status status-${course.status.toLowerCase().replace(' ', '-')}`}>
-                {course.status}
-              </span>
-            </div>
-            <p className="course-title">{course.name}</p>
-            <p className="course-instructor">👨‍🏫 {course.instructor}</p>
-            
-            <div className="course-details">
-              <div className="detail-item">
-                <span className="detail-label">Credits:</span>
-                <span className="detail-value">{course.credits}</span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">Grade:</span>
-                <span className="detail-value">{course.grade}</span>
-              </div>
-            </div>
+        {courses.map((course) => {
+          const isEnrolled = course.students?.some(
+            (student) => {
+              const studentId = student._id || student;
+              const currentUserId = user?._id || user?.id;
+              return studentId === currentUserId;
+            }
+          );
 
-            <div className="course-progress">
-              <div className="progress-header">
-                <span>Progress</span>
-                <span>{course.progress}%</span>
+          return (
+            <div key={course._id} className="course-card">
+              <div className="course-header">
+                <h3>{course.code}</h3>
+                <span className={`course-status status-${course.isActive ? 'active' : 'inactive'}`}>
+                  {course.isActive ? 'Available' : 'Inactive'}
+                </span>
               </div>
-              <div className="progress-bar">
-                <div className="progress-fill" style={{ width: `${course.progress}%` }}></div>
+              
+              <p className="course-title">{course.title}</p>
+              
+              <div className="course-instructor">
+                <span>👨‍🏫</span> {course.instructor?.name || 'Not assigned'}
+              </div>
+              
+              <div className="course-details">
+                <div className="detail-item">
+                  <span className="detail-label">Credits:</span>
+                  <span className="detail-value">{course.credits}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Semester:</span>
+                  <span className="detail-value">{course.semester} {course.year}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Enrolled:</span>
+                  <span className="detail-value">{course.students?.length || 0} students</span>
+                </div>
+              </div>
+
+              {course.description && (
+                <p className="course-description">{course.description}</p>
+              )}
+
+              <div className="course-actions">
+                <button 
+                  className={`course-enroll-btn ${isEnrolled ? 'enrolled' : ''}`}
+                  onClick={() => handleEnroll(course._id)}
+                  disabled={!course.isActive || isEnrolled}
+                >
+                  {isEnrolled ? 'Enrolled ✅' : course.isActive ? 'Enroll Now' : 'Not Available'}
+                </button>
               </div>
             </div>
-
-            <button className="course-view-btn">View Details</button>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

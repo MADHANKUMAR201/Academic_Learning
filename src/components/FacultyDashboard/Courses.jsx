@@ -1,56 +1,121 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { courseAPI } from '../../services/api';
 import '../../../src/styles/components.css';
 
 export default function FacultyCourses() {
-  const [courses, setCourses] = useState([
-    {
-      id: 1,
-      code: 'CS-101',
-      name: 'Data Structures',
-      semester: '6th',
-      students: 45,
-      credits: 3,
-      schedule: 'MWF 10:00-11:00 AM',
-      room: 'Room 101',
-      description: 'Comprehensive study of data structures including arrays, linked lists, trees, and graphs.',
-      status: 'Active',
-    },
-    {
-      id: 2,
-      code: 'CS-102',
-      name: 'Web Development',
-      semester: '6th',
-      students: 50,
-      credits: 3,
-      schedule: 'TTh 2:00-3:30 PM',
-      room: 'Lab 205',
-      description: 'Full-stack web development using HTML, CSS, JavaScript, React, and Node.js.',
-      status: 'Active',
-    },
-    {
-      id: 3,
-      code: 'CS-103',
-      name: 'Database Management',
-      semester: '6th',
-      students: 50,
-      credits: 4,
-      schedule: 'MWF 1:00-2:00 PM',
-      room: 'Room 203',
-      description: 'Database design, normalization, SQL, and relational database management systems.',
-      status: 'Active',
-    },
-  ]);
-
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // UI States
   const [showForm, setShowForm] = useState(false);
+  const [editingCourseId, setEditingCourseId] = useState(null);
+  const [viewingStudents, setViewingStudents] = useState(null);
+
+  // Form Data
   const [formData, setFormData] = useState({
     code: '',
-    name: '',
-    semester: '',
-    credits: '',
-    schedule: '',
-    room: '',
+    title: '',
     description: '',
+    credits: 3,
+    semester: '',
+    year: new Date().getFullYear(),
   });
+
+  // Fetch courses on component mount
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  const fetchCourses = async () => {
+    try {
+      setLoading(true);
+      const response = await courseAPI.getAllCourses();
+      if (response.success) {
+        setCourses(response.data);
+      } else {
+        setError(response.message || 'Failed to fetch courses');
+      }
+    } catch (err) {
+      setError('Failed to connect to server');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenAddForm = () => {
+    setEditingCourseId(null);
+    setFormData({
+      code: '',
+      title: '',
+      description: '',
+      credits: 3,
+      semester: '',
+      year: new Date().getFullYear(),
+    });
+    setShowForm(!showForm);
+  };
+
+  const handleEdit = (course) => {
+    setEditingCourseId(course._id);
+    setFormData({
+      code: course.code || '',
+      title: course.title || '',
+      description: course.description || '',
+      credits: course.credits || 3,
+      semester: course.semester || '',
+      year: course.year || new Date().getFullYear(),
+    });
+    setShowForm(true);
+    // Scroll to top where the form is
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      let response;
+      if (editingCourseId) {
+        response = await courseAPI.updateCourse(editingCourseId, formData);
+        if (response.success) {
+          // Update the array without fetching again
+          setCourses(courses.map(c => c._id === editingCourseId ? response.data : c));
+          alert('Course updated successfully');
+        }
+      } else {
+        response = await courseAPI.createCourse(formData);
+        if (response.success) {
+          setCourses(prev => [...prev, response.data]);
+          alert('Course created successfully');
+        }
+      }
+
+      if (response.success) {
+        handleOpenAddForm(); // Resets and closes
+        setShowForm(false);
+      } else {
+        setError(response.message || 'Failed to save course');
+      }
+    } catch (err) {
+      setError('Failed to save course');
+    }
+  };
+
+  const handleDelete = async (courseId) => {
+    if (window.confirm('Are you sure you want to delete this course?')) {
+      try {
+        const response = await courseAPI.deleteCourse(courseId);
+        if (response.success) {
+          setCourses(courses.filter(c => c._id !== courseId));
+          alert('Course deleted successfully');
+        } else {
+          alert(response.message || 'Failed to delete course');
+        }
+      } catch (err) {
+        alert('Failed to delete course');
+      }
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -60,40 +125,18 @@ export default function FacultyCourses() {
     }));
   };
 
-  const handleAddCourse = () => {
-    if (formData.code && formData.name && formData.credits) {
-      setCourses([...courses, {
-        id: courses.length + 1,
-        ...formData,
-        students: 0,
-        status: 'Active',
-      }]);
-      setFormData({
-        code: '',
-        name: '',
-        semester: '',
-        credits: '',
-        schedule: '',
-        room: '',
-        description: '',
-      });
-      setShowForm(false);
-      alert('Course added successfully!');
-    }
-  };
-
   return (
     <div className="courses-management-container">
       <div className="section-header">
         <h2>Manage Courses</h2>
-        <button className="btn-add-course" onClick={() => setShowForm(!showForm)}>
-          {showForm ? '✕ Close' : '+ Add New Course'}
+        <button className="btn-add-course" onClick={handleOpenAddForm}>
+          {showForm ? '✕ Close Form' : '+ Add New Course'}
         </button>
       </div>
 
       {showForm && (
         <div className="add-course-form">
-          <h3>Add New Course</h3>
+          <h3>{editingCourseId ? 'Edit Course Settings' : 'Create New Course'}</h3>
           <div className="form-row">
             <div className="form-field">
               <label>Course Code</label>
@@ -109,8 +152,8 @@ export default function FacultyCourses() {
               <label>Course Name</label>
               <input 
                 type="text" 
-                name="name"
-                value={formData.name}
+                name="title"
+                value={formData.title}
                 onChange={handleInputChange}
                 placeholder="e.g., Advanced Algorithms"
               />
@@ -125,40 +168,17 @@ export default function FacultyCourses() {
                 name="semester"
                 value={formData.semester}
                 onChange={handleInputChange}
-                placeholder="e.g., 6th"
+                placeholder="e.g., Fall, Spring, Summer"
               />
             </div>
             <div className="form-field">
-              <label>Credits</label>
+              <label>Year</label>
               <input 
                 type="number" 
-                name="credits"
-                value={formData.credits}
+                name="year"
+                value={formData.year}
                 onChange={handleInputChange}
-                placeholder="e.g., 3"
-              />
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-field">
-              <label>Schedule</label>
-              <input 
-                type="text" 
-                name="schedule"
-                value={formData.schedule}
-                onChange={handleInputChange}
-                placeholder="e.g., MWF 10:00-11:00 AM"
-              />
-            </div>
-            <div className="form-field">
-              <label>Room</label>
-              <input 
-                type="text" 
-                name="room"
-                value={formData.room}
-                onChange={handleInputChange}
-                placeholder="e.g., Room 101"
+                placeholder="e.g., 2024"
               />
             </div>
           </div>
@@ -176,40 +196,50 @@ export default function FacultyCourses() {
             </div>
           </div>
 
-          <button className="btn-save" onClick={handleAddCourse}>Add Course</button>
+          <button className="btn-save" onClick={handleSubmit}>
+            {editingCourseId ? 'Save Changes' : 'Create Course'}
+          </button>
         </div>
       )}
 
+      {loading && <div className="loading">Loading courses...</div>}
+      {error && <div className="error">{error}</div>}
+
       <div className="courses-grid">
         {courses.map((course) => (
-          <div key={course.id} className="course-management-card">
+          <div key={course._id} className="course-management-card">
             <div className="card-header">
               <h3>{course.code}</h3>
-              <span className="status-badge">{course.status}</span>
+              <div className="header-right">
+                <span className="status-badge">{course.isActive ? 'Active' : 'Inactive'}</span>
+                <button 
+                  className="btn-delete-course-small" 
+                  onClick={() => handleDelete(course._id)}
+                  title="Delete Course"
+                >
+                  🗑️
+                </button>
+              </div>
             </div>
 
-            <h4>{course.name}</h4>
+            <h4>{course.title}</h4>
 
             <div className="course-details">
-              <div className="detail">
-                <span className="label">👥 Students:</span>
-                <span className="value">{course.students}</span>
+              <div className="detail-item">
+                <span className="detail-label">👥 Students:</span>
+                <span className="detail-value">{course.students?.length || 0}</span>
               </div>
-              <div className="detail">
-                <span className="label">📚 Credits:</span>
-                <span className="value">{course.credits}</span>
+              <div className="detail-item">
+                <span className="detail-label">📚 Credits:</span>
+                <span className="detail-value">{course.credits}</span>
               </div>
-              <div className="detail">
-                <span className="label">📅 Schedule:</span>
-                <span className="value">{course.schedule}</span>
+              <div className="detail-item">
+                <span className="detail-label">📅 Semester:</span>
+                <span className="detail-value">{course.semester} {course.year}</span>
               </div>
-              <div className="detail">
-                <span className="label">📍 Location:</span>
-                <span className="value">{course.room}</span>
-              </div>
-              <div className="detail">
-                <span className="label">Semester:</span>
-                <span className="value">{course.semester}</span>
+              <div className="detail-item">
+                <span className="detail-label">👨‍🏫 Instructor:</span>
+                <span className="detail-value">{course.instructor?.name || 'Not assigned'}</span>
               </div>
             </div>
 
@@ -218,12 +248,48 @@ export default function FacultyCourses() {
             )}
 
             <div className="card-actions">
-              <button className="btn-edit-course">Edit</button>
-              <button className="btn-view-students">View Students</button>
+              <button className="btn-edit-course" onClick={() => handleEdit(course)}>Edit</button>
+              <button className="btn-view-students" onClick={() => setViewingStudents(course)}>
+                Students ({course.students?.length || 0})
+              </button>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Students Modal Overlay */}
+      {viewingStudents && (
+        <div className="students-modal-overlay" onClick={() => setViewingStudents(null)}>
+          <div className="students-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Enrolled Students: {viewingStudents.code}</h3>
+              <button className="btn-close-modal" onClick={() => setViewingStudents(null)}>✕</button>
+            </div>
+            
+            {viewingStudents.students?.length > 0 ? (
+              <div className="student-list-container">
+                <ul className="student-list">
+                  {viewingStudents.students.map((student, idx) => (
+                    <li key={student._id || idx} className="student-list-item">
+                      <div className="student-avatar">🎓</div>
+                      <div className="student-info-block">
+                        <span className="student-name">{student.name}</span>
+                        <span className="student-email">{student.email}</span>
+                      </div>
+                      <span className="student-badge">Active</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <div className="no-students-message">
+                <p>No students have enrolled in this course yet.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -25,8 +25,8 @@ router.get('/users', protect, authorize('admin'), async (req, res) => {
 
 // @route   GET /api/admin/users/role/:role
 // @desc    Get users by role
-// @access  Private/Admin
-router.get('/users/role/:role', protect, authorize('admin'), async (req, res) => {
+// @access  Private/Admin,Faculty
+router.get('/users/role/:role', protect, authorize('admin', 'faculty'), async (req, res) => {
   try {
     const users = await User.find({ role: req.params.role }).select('-password');
 
@@ -55,6 +55,38 @@ router.put('/users/:id', protect, authorize('admin'), async (req, res) => {
       new: true,
       runValidators: true,
     }).select('-password');
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @route   PUT /api/admin/users/:id/attendance
+// @desc    Update student's global attendance
+// @access  Private/Admin,Faculty
+router.put('/users/:id/attendance', protect, authorize('admin', 'faculty'), async (req, res) => {
+  try {
+    const { attendancePercentage } = req.body;
+    
+    if (attendancePercentage === undefined) {
+      return res.status(400).json({ message: 'Please provide attendancePercentage' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { 
+        $set: { 'academicInfo.attendancePercentage': attendancePercentage } 
+      },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
 
     res.status(200).json({
       success: true,

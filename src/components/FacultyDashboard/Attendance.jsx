@@ -1,34 +1,58 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../../../src/styles/components.css';
+import { adminAPI } from '../../services/api';
 
 export default function Attendance() {
-  const [attendanceData, setAttendanceData] = useState([
-    { id: 1, name: 'John Doe', enrollmentId: 'STU-001', presentDays: 40, totalDays: 45, percentage: 89 },
-    { id: 2, name: 'Jane Smith', enrollmentId: 'STU-002', presentDays: 35, totalDays: 45, percentage: 78 },
-    { id: 3, name: 'Bob Johnson', enrollmentId: 'STU-003', presentDays: 44, totalDays: 45, percentage: 98 },
-    { id: 4, name: 'Alice Brown', enrollmentId: 'STU-004', presentDays: 32, totalDays: 45, percentage: 71 },
-    { id: 5, name: 'Charlie Wilson', enrollmentId: 'STU-005', presentDays: 42, totalDays: 45, percentage: 93 },
-  ]);
+  const [allStudents, setAllStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const [editingId, setEditingId] = useState(null);
-  const [editPresent, setEditPresent] = useState('');
+  const [editingId, setEditingId] = useState(null); // student._id
+  const [editValue, setEditValue] = useState('');
 
-  const handleAttendanceUpdate = (studentId) => {
-    const present = parseInt(editPresent);
-    const student = attendanceData.find(s => s.id === studentId);
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        setLoading(true);
+        const response = await adminAPI.getUsersByRole('student');
+        if (response.success) {
+          setAllStudents(response.data);
+        } else {
+          setError(response.message || 'Failed to fetch students');
+        }
+      } catch (err) {
+        setError(err.message || 'An error occurred while fetching data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudents();
+  }, []);
+
+  const handleAttendanceUpdate = async (studentId) => {
+    const percentage = parseInt(editValue);
     
-    if (present <= student.totalDays) {
-      const newPercentage = Math.round((present / student.totalDays) * 100);
-      setAttendanceData(attendanceData.map(s =>
-        s.id === studentId
-          ? { ...s, presentDays: present, percentage: newPercentage }
-          : s
-      ));
-      setEditingId(null);
-      setEditPresent('');
-      alert('Attendance updated successfully!');
+    if (percentage >= 0 && percentage <= 100) {
+      try {
+        const response = await adminAPI.updateStudentAttendance(studentId, percentage);
+        if (response.success) {
+          setAllStudents(allStudents.map(s => 
+            s._id === studentId 
+              ? { ...s, academicInfo: { ...s.academicInfo, attendancePercentage: percentage } } 
+              : s
+          ));
+          setEditingId(null);
+          setEditValue('');
+          alert('Attendance updated successfully for the student!');
+        } else {
+          alert(`Failed to update attendance: ${response.message || 'Error'}`);
+        }
+      } catch (err) {
+        alert(`An error occurred: ${err.message}`);
+      }
     } else {
-      alert('Present days cannot exceed total days!');
+      alert('Percentage must be between 0 and 100');
     }
   };
 
@@ -42,97 +66,91 @@ export default function Attendance() {
   return (
     <div className="attendance-container">
       <div className="section-header">
-        <h2>Manage Attendance</h2>
-        <p>Update student attendance records for all enrolled courses</p>
+        <h2>Manage Student Attendance</h2>
+        <p>Update global attendance records for all students in the system</p>
       </div>
 
-      <div className="attendance-summary">
-        <div className="summary-stat">
-          <h4>Class Average</h4>
-          <p className="stat-value">{Math.round(attendanceData.reduce((sum, s) => sum + s.percentage, 0) / attendanceData.length)}%</p>
-        </div>
-        <div className="summary-stat">
-          <h4>At-Risk Students</h4>
-          <p className="stat-value">{attendanceData.filter(s => s.percentage < 75).length}</p>
-        </div>
-      </div>
-
-      <div className="attendance-list">
-        <table className="attendance-table">
-          <thead>
-            <tr>
-              <th>Student Name</th>
-              <th>Enrollment ID</th>
-              <th>Present Days</th>
-              <th>Total Days</th>
-              <th>Attendance %</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {attendanceData.map((student) => (
-              <tr key={student.id}>
-                <td className="student-name">{student.name}</td>
-                <td>{student.enrollmentId}</td>
-                <td>{editingId === student.id ? 
-                  <input 
-                    type="number" 
-                    value={editPresent}
-                    onChange={(e) => setEditPresent(e.target.value)}
-                    min="0"
-                    max={student.totalDays}
-                  /> 
-                  : student.presentDays
-                }</td>
-                <td>{student.totalDays}</td>
-                <td className={`percentage ${getAttendanceColor(student.percentage)}`}>
-                  {student.percentage}%
-                </td>
-                <td className="action-cell">
-                  {editingId === student.id ? (
-                    <div className="action-buttons">
-                      <button 
-                        className="btn-save-sm"
-                        onClick={() => handleAttendanceUpdate(student.id)}
-                      >
-                        Save
-                      </button>
-                      <button 
-                        className="btn-cancel-sm"
-                        onClick={() => {
-                          setEditingId(null);
-                          setEditPresent('');
-                        }}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <button 
-                      className="btn-edit-sm"
-                      onClick={() => {
-                        setEditingId(student.id);
-                        setEditPresent(student.presentDays.toString());
-                      }}
-                    >
-                      Edit
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="attendance-warning">
-        <h4>⚠️ Students with Low Attendance</h4>
-        <ul>
-          {attendanceData.filter(s => s.percentage < 75).map(s => (
-            <li key={s.id}>{s.name} - {s.percentage}% attendance</li>
-          ))}
-        </ul>
-      </div>
+      {loading && <div className="loading-spinner" style={{ margin: '2rem auto' }}></div>}
+      {error && <div className="error-message" style={{ margin: '1rem', padding: '1rem', backgroundColor: '#fee2e2', color: '#dc2626', borderRadius: '4px' }}>{error}</div>}
+      
+      {!loading && !error && (
+        allStudents.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
+            <h4>No students found in the database.</h4>
+          </div>
+        ) : (
+          <div className="attendance-list">
+            <table className="attendance-table">
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Enrollment ID</th>
+                  <th>Email</th>
+                  <th>Global Attendance %</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allStudents.map((student) => {
+                  const attendance = student.academicInfo?.attendancePercentage || 0;
+                  return (
+                    <tr key={student._id}>
+                      <td className="student-name">{student.name}</td>
+                      <td>{student.studentId || 'N/A'}</td>
+                      <td>{student.email}</td>
+                      <td className={`percentage ${getAttendanceColor(attendance)}`}>
+                        {editingId === student._id ? (
+                          <input 
+                            type="number" 
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            min="0"
+                            max="100"
+                            style={{ width: '60px', padding: '4px', borderRadius: '4px', border: '1px solid #ddd' }}
+                          />
+                        ) : (
+                          `${attendance}%`
+                        )}
+                      </td>
+                      <td className="action-cell">
+                        {editingId === student._id ? (
+                          <div className="action-buttons">
+                            <button 
+                              className="btn-save-sm"
+                              onClick={() => handleAttendanceUpdate(student._id)}
+                            >
+                              Save
+                            </button>
+                            <button 
+                              className="btn-cancel-sm"
+                              onClick={() => {
+                                setEditingId(null);
+                                setEditValue('');
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button 
+                            className="btn-edit-sm"
+                            onClick={() => {
+                              setEditingId(student._id);
+                              setEditValue(attendance.toString());
+                            }}
+                          >
+                            Edit
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
     </div>
   );
 }

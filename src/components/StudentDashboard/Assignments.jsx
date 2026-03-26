@@ -1,72 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { assignmentAPI } from '../../services/api';
 import '../../../src/styles/components.css';
 
 export default function StudentAssignments() {
-  const [assignments, setAssignments] = useState([
-    {
-      id: 1,
-      title: 'Data Structures Implementation',
-      course: 'CS-101',
-      dueDate: '2024-02-15',
-      status: 'Submitted',
-      grade: 'A',
-      submittedDate: '2024-02-14',
-      feedback: 'Excellent implementation with clean code structure. Well done!',
-    },
-    {
-      id: 2,
-      title: 'HTML/CSS Project',
-      course: 'CS-102',
-      dueDate: '2024-02-20',
-      status: 'In Progress',
-      grade: null,
-      submittedDate: null,
-      feedback: null,
-      progress: 65,
-    },
-    {
-      id: 3,
-      title: 'Database Design Assignment',
-      course: 'CS-103',
-      dueDate: '2024-02-18',
-      status: 'Submitted',
-      grade: 'A-',
-      submittedDate: '2024-02-17',
-      feedback: 'Great design. Small optimization suggestions included in comments.',
-    },
-    {
-      id: 4,
-      title: 'Sustainability Report',
-      course: 'CSE-105',
-      dueDate: '2024-02-25',
-      status: 'Pending',
-      grade: null,
-      submittedDate: null,
-      feedback: null,
-      progress: 0,
-    },
-    {
-      id: 5,
-      title: 'Final ML Project',
-      course: 'CS-104',
-      dueDate: '2024-01-20',
-      status: 'Submitted',
-      grade: 'A',
-      submittedDate: '2024-01-19',
-      feedback: 'Outstanding project with innovative approach to the problem.',
-    },
-  ]);
+  const [assignments, setAssignments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchAssignments();
+  }, []);
+
+  const fetchAssignments = async () => {
+    setLoading(true);
+    try {
+      const response = await assignmentAPI.getStudentAssignments();
+      if (response.success) {
+        setAssignments(response.data || []);
+      } else {
+        setError(response.message || 'Failed to fetch assignments');
+      }
+    } catch (err) {
+      setError('Failed to connect to server');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Submitted':
+      case 'submitted':
+      case 'graded':
         return 'submitted';
-      case 'In Progress':
+      case 'late':
         return 'in-progress';
-      case 'Pending':
+      case 'pending':
         return 'pending';
       default:
-        return '';
+        return 'pending';
     }
   };
 
@@ -78,83 +49,227 @@ export default function StudentAssignments() {
     return days;
   };
 
-  const pendingAssignments = assignments.filter(a => a.status !== 'Submitted');
+  const pendingAssignments = assignments.filter(a => !a.isSubmitted);
+  const submittedAssignments = assignments.filter(a => a.isSubmitted);
+
+  const [submittingId, setSubmittingId] = useState(null);
+  const [submissionContent, setSubmissionContent] = useState('');
+  const [submissionFile, setSubmissionFile] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [viewingId, setViewingId] = useState(null);
+
+  const handleStartSubmit = (assignmentId) => {
+    setSubmittingId(assignmentId);
+    setSubmissionContent('');
+    setSubmissionFile(null);
+  };
+
+  const handleCancelSubmit = () => {
+    setSubmittingId(null);
+    setSubmissionContent('');
+    setSubmissionFile(null);
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type === 'application/pdf') {
+      setSubmissionFile(file);
+    } else if (file) {
+      alert('Please select a PDF file.');
+      e.target.value = '';
+    }
+  };
+
+  const handleConfirmSubmit = async (assignmentId) => {
+    if (!submissionContent.trim() && !submissionFile) {
+      alert('Please enter your submission content or upload a PDF file.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      let fileUrl = '';
+      if (submissionFile) {
+        const uploadRes = await assignmentAPI.uploadFile(submissionFile);
+        if (uploadRes.success) {
+          fileUrl = uploadRes.data;
+        } else {
+          alert(uploadRes.message || 'File upload failed');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      const response = await assignmentAPI.submitAssignment(assignmentId, { 
+        content: submissionContent,
+        fileUrl: fileUrl
+      });
+
+      if (response.success) {
+        alert('Assignment submitted successfully!');
+        setSubmittingId(null);
+        setSubmissionContent('');
+        setSubmissionFile(null);
+        fetchAssignments(); // Refresh the list
+      } else {
+        alert(response.message || 'Failed to submit assignment');
+      }
+    } catch (err) {
+      console.error('Submission error:', err);
+      alert('An error occurred during submission.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (loading) return <div className="loading">Loading assignments...</div>;
+  if (error) return <div className="error">{error}</div>;
+
+  const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
   return (
     <div className="assignments-container">
       <div className="section-header">
         <h2>Assignments</h2>
-        <p>Total: {assignments.length} | Submitted: {assignments.filter(a => a.status === 'Submitted').length} | Pending: {pendingAssignments.length}</p>
+        <p>Total: {assignments.length} | Submitted: {submittedAssignments.length} | Pending: {pendingAssignments.length}</p>
       </div>
 
       <div className="assignments-summary">
         <div className="summary-card">
           <h4>📊 Statistics</h4>
-          <p>Submitted: <strong>{assignments.filter(a => a.status === 'Submitted').length}</strong></p>
-          <p>In Progress: <strong>{assignments.filter(a => a.status === 'In Progress').length}</strong></p>
-          <p>Pending: <strong>{assignments.filter(a => a.status === 'Pending').length}</strong></p>
+          <p>Submitted: <strong>{submittedAssignments.length}</strong></p>
+          <p>Pending: <strong>{pendingAssignments.length}</strong></p>
         </div>
       </div>
 
       <div className="assignments-list">
-        {assignments.map((assignment) => (
-          <div key={assignment.id} className="assignment-item">
-            <div className="assignment-header">
-              <div className="assignment-title-section">
-                <h4>{assignment.title}</h4>
-                <span className="assignment-course">{assignment.course}</span>
-              </div>
-              <span className={`assignment-status status-${getStatusColor(assignment.status)}`}>
-                {assignment.status}
-              </span>
-            </div>
-
-            <div className="assignment-details">
-              <div className="detail">
-                <span className="label">Due Date:</span>
-                <span className={`value ${getDaysUntilDue(assignment.dueDate) < 3 ? 'urgent' : ''}`}>
-                  {assignment.dueDate} {assignment.status !== 'Submitted' && `(${getDaysUntilDue(assignment.dueDate)} days)`}
+        {assignments.length > 0 ? assignments.map((assignment) => {
+          const status = assignment.isSubmitted ? assignment.studentSubmission?.status : (assignment.isOverdue ? 'late' : 'pending');
+          const isCurrentSubmitting = submittingId === assignment._id;
+          const isCurrentViewing = viewingId === assignment._id;
+          
+          return (
+            <div key={assignment._id} className="assignment-item">
+              <div className="assignment-header">
+                <div className="assignment-title-section">
+                  <h4>{assignment.title}</h4>
+                  <span className="assignment-course">{assignment.course?.code} - {assignment.course?.title}</span>
+                </div>
+                <span className={`assignment-status status-${getStatusColor(status)}`}>
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
                 </span>
               </div>
-              {assignment.submittedDate && (
+
+              <div className="assignment-details">
                 <div className="detail">
-                  <span className="label">Submitted:</span>
-                  <span className="value">{assignment.submittedDate}</span>
+                  <span className="label">Due Date:</span>
+                  <span className={`value ${getDaysUntilDue(assignment.dueDate) < 3 && !assignment.isSubmitted ? 'urgent' : ''}`}>
+                    {new Date(assignment.dueDate).toLocaleString()} {!assignment.isSubmitted && `(${getDaysUntilDue(assignment.dueDate)} days)`}
+                  </span>
                 </div>
-              )}
-              {assignment.grade && (
-                <div className="detail">
-                  <span className="label">Grade:</span>
-                  <span className="value grade-badge">{assignment.grade}</span>
-                </div>
-              )}
-              {assignment.progress !== undefined && assignment.progress !== null && (
-                <div className="detail">
-                  <span className="label">Progress:</span>
-                  <div className="inline-progress">
-                    <div className="progress-bar">
-                      <div className="progress-fill" style={{ width: `${assignment.progress}%` }}></div>
-                    </div>
-                    <span className="value">{assignment.progress}%</span>
+                {assignment.isSubmitted && (
+                  <div className="detail">
+                    <span className="label">Submitted:</span>
+                    <span className="value">{new Date(assignment.studentSubmission.submissionDate).toLocaleString()}</span>
+                  </div>
+                )}
+                {assignment.studentSubmission?.status === 'graded' && (
+                  <div className="detail">
+                    <span className="label">Score:</span>
+                    <span className="value grade-badge">{assignment.studentSubmission.score} / {assignment.maxScore}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Submission Form */}
+              {isCurrentSubmitting && (
+                <div className="submission-form-container">
+                  <div className="form-group">
+                    <label>Upload PDF Assignment:</label>
+                    <input 
+                      type="file" 
+                      accept=".pdf" 
+                      onChange={handleFileChange}
+                      className="file-input"
+                    />
+                  </div>
+                  
+                  <div className="form-group" style={{ marginTop: '1rem' }}>
+                    <label>Additional Notes (Optional):</label>
+                    <textarea
+                      className="submission-textarea"
+                      placeholder="Enter any notes here..."
+                      value={submissionContent}
+                      onChange={(e) => setSubmissionContent(e.target.value)}
+                      rows="3"
+                    />
+                  </div>
+
+                  <div className="form-actions">
+                    <button 
+                      className="btn-save" 
+                      onClick={() => handleConfirmSubmit(assignment._id)}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? 'Submitting...' : 'Confirm Submission'}
+                    </button>
+                    <button className="btn-cancel" onClick={handleCancelSubmit} disabled={isSubmitting}>Cancel</button>
                   </div>
                 </div>
               )}
-            </div>
 
-            {assignment.feedback && (
-              <div className="assignment-feedback">
-                <p className="feedback-label">📝 Feedback:</p>
-                <p className="feedback-text">{assignment.feedback}</p>
+              {/* View Submission Content */}
+              {isCurrentViewing && assignment.isSubmitted && (
+                <div className="view-submission-content">
+                  {assignment.studentSubmission.fileUrl && (
+                    <div className="submission-file-link">
+                      <label>Attached PDF:</label>
+                      <a 
+                        href={`${API_BASE_URL}${assignment.studentSubmission.fileUrl}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="btn-download"
+                      >
+                        📄 View PDF Document
+                      </a>
+                    </div>
+                  )}
+                  
+                  {assignment.studentSubmission.content && (
+                    <div className="submission-text-view" style={{ marginTop: '1rem' }}>
+                      <label>Submitted Notes:</label>
+                      <div className="submitted-text-box">
+                        {assignment.studentSubmission.content}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {assignment.studentSubmission?.feedback && (
+                <div className="assignment-feedback">
+                  <p className="feedback-label">📝 Feedback:</p>
+                  <p className="feedback-text">{assignment.studentSubmission.feedback}</p>
+                </div>
+              )}
+
+              <div className="assignment-actions">
+                {!assignment.isSubmitted && !isCurrentSubmitting && (
+                  <button className="btn-start" onClick={() => handleStartSubmit(assignment._id)}>
+                    Submit Assignment
+                  </button>
+                )}
+                {assignment.isSubmitted && (
+                  <button className="btn-view" onClick={() => setViewingId(isCurrentViewing ? null : assignment._id)}>
+                    {isCurrentViewing ? 'Hide Submission' : 'View Submission'}
+                  </button>
+                )}
               </div>
-            )}
-
-            <div className="assignment-actions">
-              {assignment.status === 'In Progress' && <button className="btn-submit">Submit Assignment</button>}
-              {assignment.status === 'Submitted' && <button className="btn-view">View Submission</button>}
-              {assignment.status === 'Pending' && <button className="btn-start">Start Assignment</button>}
             </div>
-          </div>
-        ))}
+          );
+        }) : (
+          <p>No assignments found.</p>
+        )}
       </div>
     </div>
   );

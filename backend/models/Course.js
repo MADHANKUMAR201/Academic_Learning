@@ -25,7 +25,6 @@ const courseSchema = new mongoose.Schema(
     },
     semester: {
       type: String,
-      enum: ['Fall', 'Spring', 'Summer'],
     },
     year: {
       type: Number,

@@ -1,4 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+export const BASE_URL = API_URL.replace('/api', '');
 
 // Set Authorization header with token
 const getAuthHeader = () => {
@@ -131,6 +132,14 @@ export const courseAPI = {
     return response.json();
   },
 
+  deleteCourse: async (id) => {
+    const response = await fetch(`${API_URL}/courses/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeader(),
+    });
+    return response.json();
+  },
+
   enrollCourse: async (id) => {
     const response = await fetch(`${API_URL}/courses/${id}/enroll`, {
       method: 'POST',
@@ -142,6 +151,20 @@ export const courseAPI = {
 
 // Assignment APIs
 export const assignmentAPI = {
+  getFacultyAssignments: async () => {
+    const response = await fetch(`${API_URL}/assignments/faculty`, {
+      headers: getAuthHeader(),
+    });
+    return handleResponse(response);
+  },
+
+  getStudentAssignments: async () => {
+    const response = await fetch(`${API_URL}/assignments/student`, {
+      headers: getAuthHeader(),
+    });
+    return handleResponse(response);
+  },
+
   getAllAssignments: async () => {
     const response = await fetch(`${API_URL}/assignments`, {
       headers: getAuthHeader(),
@@ -191,6 +214,38 @@ export const assignmentAPI = {
     });
     return response.json();
   },
+
+  uploadFile: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_URL}/upload/assignment`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeader(),
+      },
+      body: formData,
+    });
+    return handleResponse(response);
+  },
+  setReminder: async (id, reminder) => {
+    const response = await fetch(`${API_URL}/assignments/${id}/reminder`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify({ reminder }),
+    });
+    return response.json();
+  },
+  dismissReminder: async (id) => {
+    const response = await fetch(`${API_URL}/assignments/${id}/dismiss-reminder`, {
+      method: 'POST',
+      headers: getAuthHeader(),
+    });
+    return response.json();
+  },
 };
 
 // Progress APIs
@@ -224,6 +279,13 @@ export const progressAPI = {
         ...getAuthHeader(),
       },
       body: JSON.stringify(progressData),
+    });
+    return response.json();
+  },
+
+  getFacultyAllProgress: async () => {
+    const response = await fetch(`${API_URL}/progress/faculty/all`, {
+      headers: getAuthHeader(),
     });
     return response.json();
   },
@@ -282,6 +344,18 @@ export const adminAPI = {
   getCourseEnrollment: async () => {
     const response = await fetch(`${API_URL}/admin/analytics/course-enrollment`, {
       headers: getAuthHeader(),
+    });
+    return response.json();
+  },
+
+  updateStudentAttendance: async (studentId, attendancePercentage) => {
+    const response = await fetch(`${API_URL}/admin/users/${studentId}/attendance`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify({ attendancePercentage }),
     });
     return response.json();
   },

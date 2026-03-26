@@ -11,6 +11,11 @@ export const connectDB = async () => {
     return conn;
   } catch (error) {
     console.error(`Error connecting to MongoDB: ${error.message}`);
-    process.exit(1);
+    // In development, don't exit the process so nodemon stays running
+    // This helps you fix DNS/credentials without the app crashing repeatedly.
+    if (process.env.NODE_ENV !== 'development') {
+      process.exit(1);
+    }
+    return null;
   }
 };

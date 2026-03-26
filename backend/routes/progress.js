@@ -1,5 +1,7 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import Progress from '../models/Progress.js';
+import Course from '../models/Course.js';
 import { protect, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -77,11 +79,11 @@ router.post('/', protect, authorize('faculty', 'admin'), async (req, res) => {
 
     if (progress) {
       // Update existing progress
-      progress.overallGrade = overallGrade || progress.overallGrade;
-      progress.completedAssignments = completedAssignments || progress.completedAssignments;
-      progress.totalAssignments = totalAssignments || progress.totalAssignments;
-      progress.attendancePercentage = attendancePercentage || progress.attendancePercentage;
-      progress.sustainabilityScore = sustainabilityScore || progress.sustainabilityScore;
+      if (overallGrade !== undefined) progress.overallGrade = overallGrade;
+      if (completedAssignments !== undefined) progress.completedAssignments = completedAssignments;
+      if (totalAssignments !== undefined) progress.totalAssignments = totalAssignments;
+      if (attendancePercentage !== undefined) progress.attendancePercentage = attendancePercentage;
+      if (sustainabilityScore !== undefined) progress.sustainabilityScore = sustainabilityScore;
       progress.lastUpdated = new Date();
 
       await progress.save();
@@ -127,6 +129,28 @@ router.put('/:id', protect, authorize('faculty', 'admin'), async (req, res) => {
 
     res.status(200).json({
       success: true,
+      data: progress,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @route   GET /api/progress/faculty/all
+// @desc    Get all progress records for courses taught by the faculty
+// @access  Private/Faculty
+router.get('/faculty/all', protect, authorize('faculty'), async (req, res) => {
+  try {
+    const facultyCourses = await Course.find({ instructor: req.user.id });
+    const courseIds = facultyCourses.map(c => c._id);
+
+    const progress = await Progress.find({ course: { $in: courseIds } })
+      .populate('student', 'name email studentId')
+      .populate('course', 'title code');
+
+    res.status(200).json({
+      success: true,
+      count: progress.length,
       data: progress,
     });
   } catch (error) {

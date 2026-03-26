@@ -24,10 +24,6 @@ const progressSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    attendancePercentage: {
-      type: Number,
-      default: 0,
-    },
     partic: {
       type: Number,
       default: 0,

@@ -24,8 +24,12 @@ const assignmentSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['homework', 'quiz', 'project', 'exam'],
+      enum: ['homework', 'quiz', 'project', 'exam', 'reminder'],
       default: 'homework',
+    },
+    reminder: {
+      type: String,
+      default: '',
     },
     submissions: [
       {
@@ -34,8 +38,21 @@ const assignmentSchema = new mongoose.Schema(
           ref: 'User',
         },
         submissionDate: Date,
+        content: {
+          type: String, // For text submissions
+          required: false,
+        },
+        fileUrl: {
+          type: String, // For file submissions
+          required: false,
+        },
         score: Number,
         feedback: String,
+        status: {
+          type: String,
+          enum: ['submitted', 'late', 'graded'],
+          default: 'submitted',
+        },
       },
     ],
   },

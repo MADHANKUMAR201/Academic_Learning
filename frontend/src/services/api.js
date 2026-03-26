@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 export const BASE_URL = API_URL.replace('/api', '');
 
 // Set Authorization header with token
@@ -25,7 +25,7 @@ const handleFetchError = (error) => {
   if (error.message.includes('Failed to fetch')) {
     return {
       success: false,
-      message: 'Cannot connect to server. Make sure backend is running on http://localhost:5000',
+      message: `Cannot connect to server. Make sure backend is running on ${API_URL.replace('/api', '')}`,
     };
   }
   return {

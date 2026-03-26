@@ -125,7 +125,7 @@ export default function StudentAssignments() {
   if (loading) return <div className="loading">Loading assignments...</div>;
   if (error) return <div className="error">{error}</div>;
 
-  const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+  const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5001';
 
   return (
     <div className="assignments-container">

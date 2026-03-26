@@ -41,20 +41,7 @@ if (fs.existsSync(path.join(__dirname, 'uploads'))) {
 // CORS
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow all localhost origins in development
-      if (process.env.NODE_ENV !== 'production') {
-        return callback(null, true);
-      }
-      
-      // In production, only allow specific domain
-      const allowedOrigins = ['https://yourdomain.com'];
-      if (!origin || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      
-      return callback(new Error('Not allowed by CORS'));
-    },
+    origin: '*',
     credentials: true,
   })
 );
@@ -86,11 +73,18 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+  });
+  
+  server.on('error', (e) => {
+    if (e.code === 'EADDRINUSE') {
+      console.error(`Port ${PORT} is in use. Please kill the process on that port or try a different one.`);
+      process.exit(1);
+    }
   });
 }
 

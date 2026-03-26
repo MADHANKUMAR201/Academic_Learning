@@ -62,7 +62,7 @@ export default function StudentDashboard() {
 
         setStats({
           overallGPA: totalCourses > 0 ? (totalGPA / totalCourses / 25).toFixed(1) : 0, // Assuming 0-100 to 0-4 scale
-          sustainabilityScore: totalCourses > 0 ? Math.round(totalSustain / totalCourses) : 0,
+          sustainabilityScore: latestUser?.academicInfo?.overallSustainability || user?.academicInfo?.overallSustainability || 0,
           attendancePercentage: latestUser?.academicInfo?.attendancePercentage || user?.academicInfo?.attendancePercentage || 0,
           completedAssignments: completed,
           totalAssignments: totalAsgn,

@@ -3,59 +3,13 @@ import mongoose from 'mongoose';
 import Assignment from '../models/Assignment.js';
 import Course from '../models/Course.js';
 import Progress from '../models/Progress.js';
+import User from '../models/User.js';
+import { syncStudentProgress as syncProgress } from '../utils/progressSync.js';
 import { protect, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Helper to sync progress for a student in a course
-const syncProgress = async (studentId, courseId) => {
-  try {
-    const courseAssignments = await Assignment.find({ course: courseId });
-    
-    let completedCount = 0;
-    let totalWeightedScore = 0;
-    let gradedCount = 0;
-
-    courseAssignments.forEach(asgn => {
-      const s = asgn.submissions.find(subm => 
-        (subm.student._id || subm.student).toString() === studentId.toString()
-      );
-      // Count as completed if submitted, graded or late
-      if (s && ['submitted', 'graded', 'late'].includes(s.status)) {
-        completedCount++;
-      }
-      // Calculate grade if graded
-      if (s && s.status === 'graded') {
-        gradedCount++;
-        totalWeightedScore += (s.score / asgn.maxScore) * 100;
-      }
-    });
-
-    let studentProgress = await Progress.findOne({ student: studentId, course: courseId });
-    if (!studentProgress) {
-      studentProgress = new Progress({
-        student: studentId,
-        course: courseId,
-        totalAssignments: courseAssignments.length,
-        completedAssignments: completedCount,
-        overallGrade: gradedCount > 0 ? Math.round(totalWeightedScore / gradedCount) : 0
-      });
-    } else {
-      studentProgress.totalAssignments = courseAssignments.length;
-      studentProgress.completedAssignments = completedCount;
-      if (gradedCount > 0) {
-        studentProgress.overallGrade = Math.round(totalWeightedScore / gradedCount);
-      }
-      studentProgress.lastUpdated = new Date();
-    }
-    
-    await studentProgress.save();
-    return studentProgress;
-  } catch (err) {
-    console.error('Sync Error:', err);
-    return null;
-  }
-};
+// Local syncProgress is now replaced by syncStudentProgress from utils
 
 // @route   GET /api/assignments/faculty
 // @desc    Get assignments created by faculty
@@ -207,7 +161,7 @@ router.post('/', protect, authorize('faculty', 'admin'), async (req, res) => {
       const courseDoc = await Course.findById(course);
       if (courseDoc && courseDoc.students.length > 0) {
         for (const studentId of courseDoc.students) {
-          await syncProgress(studentId, course);
+          await syncStudentProgress(studentId, course);
         }
       }
     } catch (syncError) {

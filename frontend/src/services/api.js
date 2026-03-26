@@ -147,6 +147,45 @@ export const courseAPI = {
     });
     return response.json();
   },
+  getFacultyStats: async () => {
+    const response = await fetch(`${API_URL}/courses/faculty/stats`, {
+      headers: getAuthHeader(),
+    });
+    return response.json();
+  },
+
+  uploadMaterial: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch(`${API_URL}/upload/material`, {
+      method: 'POST',
+      headers: getAuthHeader(),
+      body: formData,
+    });
+    return handleResponse(response);
+  },
+
+  addCourseMaterial: async (courseId, materialData) => {
+    const response = await fetch(`${API_URL}/courses/${courseId}/materials`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify(materialData),
+    });
+    return response.json();
+  },
+
+  deleteCourseMaterial: async (courseId, materialId) => {
+    const response = await fetch(`${API_URL}/courses/${courseId}/materials/${materialId}`, {
+      method: 'DELETE',
+      headers: getAuthHeader(),
+    });
+    return response.json();
+  },
+
+  BASE_URL: BASE_URL,
 };
 
 // Assignment APIs
@@ -356,6 +395,14 @@ export const adminAPI = {
         ...getAuthHeader(),
       },
       body: JSON.stringify({ attendancePercentage }),
+    });
+    return response.json();
+  },
+
+  syncAllScores: async () => {
+    const response = await fetch(`${API_URL}/admin/sync-all-scores`, {
+      method: 'POST',
+      headers: getAuthHeader(),
     });
     return response.json();
   },

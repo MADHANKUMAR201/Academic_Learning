@@ -22,6 +22,7 @@ export default function StudentProgress() {
             courseCode: record.course?.code || '',
             courseId: record.course?._id || record.course,
             progress: record.overallGrade || 0,
+            sustainabilityScore: record.student?.academicInfo?.overallSustainability || 0,
             status: record.status || getStatusLabel(record.overallGrade || 0)
           })).filter(s => s.id && s.courseId); // Ensure we have valid IDs
           setStudents(mappedStudents);
@@ -53,9 +54,15 @@ export default function StudentProgress() {
         
         const response = await progressAPI.updateProgress(progressData);
         if (response.success) {
+          const updatedRecord = response.data;
           setStudents(students.map(s => 
             (s.id === studentId && s.courseId === courseId)
-              ? { ...s, progress: parseInt(updatedProgress), status: selectedStatus }
+              ? { 
+                  ...s, 
+                  progress: updatedRecord.overallGrade, 
+                  sustainabilityScore: updatedRecord.sustainabilityScore,
+                  status: selectedStatus 
+                }
               : s
           ));
           setUpdatedProgress('');
@@ -123,12 +130,22 @@ export default function StudentProgress() {
                   </span>
                 </div>
 
-                <div className="progress-display">
-                  <div className="progress-bar">
-                    <div className="progress-fill" style={{ width: `${student.progress}%` }}></div>
+                  <div className="progress-display">
+                    <div className="progress-info-row">
+                      <div className="progress-item">
+                        <div className="progress-bar">
+                          <div className="progress-fill" style={{ width: `${student.progress}%` }}></div>
+                        </div>
+                        <span className="progress-label">Progress: {student.progress}%</span>
+                      </div>
+                      <div className="progress-item">
+                        <div className="progress-bar sustain">
+                          <div className="progress-fill" style={{ width: `${student.sustainabilityScore}%` }}></div>
+                        </div>
+                        <span className="progress-label">Sustainability: {student.sustainabilityScore}%</span>
+                      </div>
+                    </div>
                   </div>
-                  <span className="progress-value">{student.progress}%</span>
-                </div>
 
                 {selectedKey === compositeKey ? (
                   <div className="progress-update-form">
@@ -180,9 +197,9 @@ export default function StudentProgress() {
                   <button 
                     className="btn-edit"
                     onClick={() => {
-                      setSelectedKey(compositeKey);
-                      setUpdatedProgress(student.progress.toString());
-                      setSelectedStatus(student.status);
+                       setSelectedKey(compositeKey);
+                       setUpdatedProgress(student.progress.toString());
+                       setSelectedStatus(student.status);
                     }}
                   >
                     Update Progress

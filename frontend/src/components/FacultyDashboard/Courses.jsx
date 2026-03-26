@@ -11,6 +11,9 @@ export default function FacultyCourses() {
   const [showForm, setShowForm] = useState(false);
   const [editingCourseId, setEditingCourseId] = useState(null);
   const [viewingStudents, setViewingStudents] = useState(null);
+  const [viewingMaterials, setViewingMaterials] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [materialTitle, setMaterialTitle] = useState('');
 
   // Form Data
   const [formData, setFormData] = useState({
@@ -113,6 +116,51 @@ export default function FacultyCourses() {
         }
       } catch (err) {
         alert('Failed to delete course');
+      }
+    }
+  };
+
+  const handleUploadMaterial = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!materialTitle.trim()) {
+      alert("Please enter a title for the material");
+      return;
+    }
+
+    try {
+      setUploading(true);
+      const uploadRes = await courseAPI.uploadMaterial(file);
+      if (uploadRes.success) {
+        const materialData = {
+          title: materialTitle,
+          fileUrl: uploadRes.data
+        };
+        const courseRes = await courseAPI.addCourseMaterial(viewingMaterials._id, materialData);
+        if (courseRes.success) {
+          setViewingMaterials(courseRes.data);
+          setCourses(courses.map(c => c._id === courseRes.data._id ? courseRes.data : c));
+          setMaterialTitle('');
+          alert('Material uploaded successfully!');
+        }
+      }
+    } catch (err) {
+      alert('Upload failed: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteMaterial = async (materialId) => {
+    if (window.confirm('Delete this material?')) {
+      try {
+        const response = await courseAPI.deleteCourseMaterial(viewingMaterials._id, materialId);
+        if (response.success) {
+          setViewingMaterials(response.data);
+          setCourses(courses.map(c => c._id === response.data._id ? response.data : c));
+        }
+      } catch (err) {
+        alert('Delete failed');
       }
     }
   };
@@ -252,6 +300,9 @@ export default function FacultyCourses() {
               <button className="btn-view-students" onClick={() => setViewingStudents(course)}>
                 Students ({course.students?.length || 0})
               </button>
+              <button className="btn-manage-materials" onClick={() => setViewingMaterials(course)}>
+                Materials ({course.materials?.length || 0})
+              </button>
             </div>
           </div>
         ))}
@@ -286,6 +337,77 @@ export default function FacultyCourses() {
                 <p>No students have enrolled in this course yet.</p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Materials Modal Overlay */}
+      {viewingMaterials && (
+        <div className="students-modal-overlay" onClick={() => setViewingMaterials(null)}>
+          <div className="students-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Manage Materials: {viewingMaterials.code}</h3>
+              <button className="btn-close-modal" onClick={() => setViewingMaterials(null)}>✕</button>
+            </div>
+
+            <div className="upload-section" style={{ padding: '1rem', borderBottom: '1px solid #eee' }}>
+              <h4>Upload New PDF</h4>
+              <div className="form-field" style={{ marginBottom: '1rem' }}>
+                <input 
+                  type="text" 
+                  placeholder="Material Title (e.g. Week 1 Lecture)" 
+                  value={materialTitle}
+                  onChange={(e) => setMaterialTitle(e.target.value)}
+                  style={{ marginBottom: '0.5rem', width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <input 
+                    type="file" 
+                    accept=".pdf" 
+                    onChange={handleUploadMaterial}
+                    disabled={uploading}
+                  />
+                  {uploading && <span style={{ fontSize: '0.9rem', color: '#666' }}>Uploading...</span>}
+                </div>
+              </div>
+            </div>
+            
+            <div className="material-list-container" style={{ padding: '1rem', maxHeight: '400px', overflowY: 'auto' }}>
+              <h4>Current Materials</h4>
+              {viewingMaterials.materials?.length > 0 ? (
+                <ul className="student-list" style={{ listStyle: 'none', padding: 0 }}>
+                  {viewingMaterials.materials.map((m) => (
+                    <li key={m._id} className="student-list-item" style={{ display: 'flex', alignItems: 'center', padding: '12px', borderBottom: '1px solid #f0f0f0', borderRadius: '8px', marginBottom: '8px', backgroundColor: '#fafafa' }}>
+                      <div className="student-avatar" style={{ marginRight: '15px', fontSize: '1.5rem' }}>📄</div>
+                      <div className="student-info-block" style={{ flex: 1 }}>
+                        <span className="student-name" style={{ display: 'block', fontWeight: '600', color: '#333' }}>{m.title}</span>
+                        <a 
+                          href={`${courseAPI.BASE_URL}${m.fileUrl}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="view-link"
+                          style={{ fontSize: '0.85rem', color: 'var(--primary-color)', textDecoration: 'none', fontWeight: '500' }}
+                        >
+                          View PDF material
+                        </a>
+                      </div>
+                      <button 
+                         className="btn-delete-course-small"
+                         onClick={() => handleDeleteMaterial(m._id)}
+                         title="Delete Material"
+                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', color: '#ff4d4f', transition: 'color 0.2s' }}
+                      >
+                        🗑️
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '2rem', color: '#888' }}>
+                  <p>No materials uploaded for this course yet.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

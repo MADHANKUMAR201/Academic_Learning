@@ -702,20 +702,39 @@
 
 .progress-display {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
 
-.progress-display .progress-bar {
-  flex: 1;
+.progress-info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
 }
 
-.progress-value {
-  font-weight: 700;
-  color: var(--text-primary);
-  min-width: 50px;
-  text-align: right;
+.progress-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.progress-item .progress-bar {
+  height: 8px;
+  background-color: var(--border-light);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-item .progress-bar.sustain .progress-fill {
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.progress-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .progress-update-form {

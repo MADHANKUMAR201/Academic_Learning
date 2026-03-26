@@ -7,6 +7,7 @@ export default function StudentCourses() {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [viewingMaterials, setViewingMaterials] = useState(null);
   const { user } = useAuth();
 
   // Fetch courses on component mount
@@ -98,7 +99,7 @@ export default function StudentCourses() {
                 <p className="course-description">{course.description}</p>
               )}
 
-              <div className="course-actions">
+               <div className="course-actions">
                 <button 
                   className={`course-enroll-btn ${isEnrolled ? 'enrolled' : ''}`}
                   onClick={() => handleEnroll(course._id)}
@@ -106,11 +107,68 @@ export default function StudentCourses() {
                 >
                   {isEnrolled ? 'Enrolled ✅' : course.isActive ? 'Enroll Now' : 'Not Available'}
                 </button>
+                {isEnrolled && (
+                  <button 
+                    className="course-enroll-btn"
+                    style={{ marginTop: '0.5rem', backgroundColor: '#4a90e2' }}
+                    onClick={() => setViewingMaterials(course)}
+                  >
+                    View Materials 📄
+                  </button>
+                )}
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Materials Modal Overlay */}
+      {viewingMaterials && (
+        <div className="students-modal-overlay" onClick={() => setViewingMaterials(null)}>
+          <div className="students-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Course Materials: {viewingMaterials.code}</h3>
+              <button className="btn-close-modal" onClick={() => setViewingMaterials(null)}>✕</button>
+            </div>
+            
+            <div className="material-list-container" style={{ padding: '1rem', maxHeight: '500px', overflowY: 'auto' }}>
+              <p style={{ marginBottom: '1.5rem', color: '#666' }}>Study materials uploaded by your instructor for {viewingMaterials.title}.</p>
+              
+              {viewingMaterials.materials?.length > 0 ? (
+                <ul className="student-list" style={{ listStyle: 'none', padding: 0 }}>
+                  {viewingMaterials.materials.map((m) => (
+                    <li key={m._id} className="student-list-item" style={{ display: 'flex', alignItems: 'center', padding: '1rem', borderBottom: '1px solid #eee', backgroundColor: '#f9f9f9', borderRadius: '8px', marginBottom: '0.8rem' }}>
+                      <div className="student-avatar" style={{ fontSize: '1.8rem', marginRight: '1rem' }}>📕</div>
+                      <div className="student-info-block" style={{ flex: 1 }}>
+                        <span className="student-name" style={{ fontWeight: '600', display: 'block' }}>{m.title}</span>
+                        <span style={{ fontSize: '0.75rem', color: '#999' }}>Uploaded on {new Date(m.uploadedAt).toLocaleDateString()}</span>
+                      </div>
+                      <a 
+                        href={`${courseAPI.BASE_URL}${m.fileUrl}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="btn-view-students"
+                        style={{ textDecoration: 'none', textAlign: 'center', minWidth: '80px' }}
+                      >
+                        Open PDF
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#888' }}>
+                  <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📂</div>
+                  <p>No study materials have been uploaded for this course yet.</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="modal-footer" style={{ padding: '1rem', textAlign: 'right', borderTop: '1px solid #eee' }}>
+              <button className="btn-save" onClick={() => setViewingMaterials(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

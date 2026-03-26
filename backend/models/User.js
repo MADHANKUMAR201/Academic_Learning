@@ -45,6 +45,7 @@ const userSchema = new mongoose.Schema(
       cumulativeGPA: { type: Number },
       majorGPA: { type: Number },
       attendancePercentage: { type: Number, default: 0 },
+      overallSustainability: { type: Number, default: 0 },
     },
     achievements: [{ type: String }],
     enrolledCourses: [

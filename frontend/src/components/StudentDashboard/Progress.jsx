@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { progressAPI } from '../../services/api';
 import '../../../src/styles/components.css';
 
 export default function StudentProgress() {
+  const { user, refreshUser } = useAuth();
   const [progressData, setProgressData] = useState({
     overallProgress: 0,
     courseProgress: [],
@@ -11,7 +13,8 @@ export default function StudentProgress() {
       cumulativeGPA: 0,
       targetGPA: 4.0,
       completedCredits: 0,
-      requiredCredits: 0,
+      requiredCredits: 120,
+      sustainabilityScore: 0,
     },
   });
   const [loading, setLoading] = useState(true);
@@ -23,7 +26,11 @@ export default function StudentProgress() {
   const fetchProgress = async () => {
     setLoading(true);
     try {
-      const response = await progressAPI.getMyProgress();
+      const [response, latestUser] = await Promise.all([
+        progressAPI.getMyProgress(),
+        refreshUser()
+      ]);
+      
       if (response.success && response.data) {
         const data = response.data;
         const totalCourses = data.length;
@@ -63,6 +70,7 @@ export default function StudentProgress() {
             targetGPA: 3.8,
             completedCredits: totalCourses * 3, // Assuming 3 credits per course
             requiredCredits: 120,
+            sustainabilityScore: latestUser?.academicInfo?.overallSustainability || user?.academicInfo?.overallSustainability || 0,
           }
         });
       }
@@ -107,6 +115,13 @@ export default function StudentProgress() {
           <p className="metric-value">{progressData.academicMetrics.cumulativeGPA}</p>
           <p className="metric-target">Maintained</p>
         </div>
+         <div className="metric-card">
+          <h4>Sustainability Score</h4>
+          <p className="metric-value">{progressData.academicMetrics.sustainabilityScore}%</p>
+          <div className="tiny-bar" style={{ margin: '0.5rem auto', width: '80%' }}>
+            <div className="tiny-fill" style={{ width: `${progressData.academicMetrics.sustainabilityScore}%`, background: 'var(--success-color)' }}></div>
+          </div>
+        </div>
         <div className="metric-card">
           <h4>Credits Completed</h4>
           <p className="metric-value">{progressData.academicMetrics.completedCredits}</p>
@@ -137,10 +152,10 @@ export default function StudentProgress() {
       <div className="recommendations">
         <h3>💡 Recommendations</h3>
         <ul className="recommendations-list">
-          <li>Increase focus on Web Development - currently at 60%</li>
-          <li>Maintain consistency in Data Structures - excellent progress at 75%</li>
-          <li>Complete pending assignments to boost overall progress</li>
-          <li>Review sustainability topics to strengthen course understanding</li>
+          {progressData.overallProgress < 70 && <li>Complete pending assignments to boost your overall progress</li>}
+          {progressData.academicMetrics.sustainabilityScore < 80 && <li>Review sustainability topics and engagement to improve your score</li>}
+          <li>Maintain consistency in your courses to reach your target GPA of {progressData.academicMetrics.targetGPA}</li>
+          <li>Your attendance is looking {parseFloat(progressData.academicMetrics.semesterGPA) > 3 ? 'great' : 'good'}, keep it up!</li>
         </ul>
       </div>
     </div>

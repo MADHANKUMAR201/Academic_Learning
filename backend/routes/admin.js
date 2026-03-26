@@ -2,6 +2,7 @@ import express from 'express';
 import User from '../models/User.js';
 import Progress from '../models/Progress.js';
 import Course from '../models/Course.js';
+import { syncStudentProgress } from '../utils/progressSync.js';
 import { protect, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -81,11 +82,17 @@ router.put('/users/:id/attendance', protect, authorize('admin', 'faculty'), asyn
       { 
         $set: { 'academicInfo.attendancePercentage': attendancePercentage } 
       },
-      { new: true, runValidators: true }
+      { new: true }
     ).select('-password');
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Recalculate sustainability for all student progress records
+    const studentProgressRecords = await Progress.find({ student: req.params.id });
+    for (const record of studentProgressRecords) {
+      await syncStudentProgress(req.params.id, record.course);
     }
 
     res.status(200).json({
@@ -205,6 +212,36 @@ router.get('/analytics/course-enrollment', protect, authorize('admin'), async (r
       data: enrollmentData,
     });
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
+// @route   POST /api/admin/sync-all-scores
+// @desc    Sync sustainability scores for all students
+// @access  Private/Admin
+router.post('/sync-all-scores', protect, authorize('admin'), async (req, res) => {
+  try {
+    const students = await User.find({ role: 'student' });
+    let totalUpdated = 0;
+
+    for (const student of students) {
+      const studentId = student._id;
+      // Get all progress records for this student to know which courses to sync
+      const progressRecords = await Progress.find({ student: studentId });
+      
+      for (const record of progressRecords) {
+        await syncStudentProgress(studentId, record.course);
+      }
+      totalUpdated++;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully synchronized scores for ${totalUpdated} students`,
+    });
+  } catch (error) {
+    console.error('Sync scores error:', error.message);
     res.status(500).json({ message: error.message });
   }
 });

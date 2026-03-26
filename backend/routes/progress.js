@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import Progress from '../models/Progress.js';
 import Course from '../models/Course.js';
+import { syncStudentProgress } from '../utils/progressSync.js';
 import { protect, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -33,7 +34,7 @@ router.get('/course/:courseId/student/:studentId', protect, authorize('faculty',
       course: req.params.courseId,
       student: req.params.studentId,
     })
-      .populate('student', 'name email studentId')
+      .populate('student', 'name email studentId academicInfo')
       .populate('course', 'title code');
 
     if (!progress) {
@@ -55,7 +56,7 @@ router.get('/course/:courseId/student/:studentId', protect, authorize('faculty',
 router.get('/course/:courseId', protect, authorize('faculty', 'admin'), async (req, res) => {
   try {
     const progress = await Progress.find({ course: req.params.courseId })
-      .populate('student', 'name email studentId')
+      .populate('student', 'name email studentId academicInfo')
       .populate('course', 'title code');
 
     res.status(200).json({
@@ -87,6 +88,8 @@ router.post('/', protect, authorize('faculty', 'admin'), async (req, res) => {
       progress.lastUpdated = new Date();
 
       await progress.save();
+      // Recalculate sustainability score after manual update and use the updated record
+      progress = await syncStudentProgress(student, course);
     } else {
       // Create new progress record
       progress = new Progress({
@@ -100,6 +103,8 @@ router.post('/', protect, authorize('faculty', 'admin'), async (req, res) => {
       });
 
       await progress.save();
+      // Calculate initial sustainability score
+      progress = await syncStudentProgress(student, course);
     }
 
     res.status(201).json({
@@ -145,7 +150,7 @@ router.get('/faculty/all', protect, authorize('faculty'), async (req, res) => {
     const courseIds = facultyCourses.map(c => c._id);
 
     const progress = await Progress.find({ course: { $in: courseIds } })
-      .populate('student', 'name email studentId')
+      .populate('student', 'name email studentId academicInfo')
       .populate('course', 'title code');
 
     res.status(200).json({

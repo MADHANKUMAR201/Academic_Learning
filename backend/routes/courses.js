@@ -209,8 +209,9 @@ router.get('/faculty/stats', protect, authorize('faculty'), async (req, res) => 
       c.students.forEach(s => uniqueStudentsSet.add(s.toString()));
     });
     
-    // Get all progress records for these courses
-    const progressRecords = await Progress.find({ course: { $in: courseIds } });
+    // Get all progress records for these courses, populated with student academicInfo
+    const progressRecords = await Progress.find({ course: { $in: courseIds } })
+      .populate('student', 'academicInfo');
     
     let totalProgress = 0;
     let totalSustainability = 0;
@@ -220,7 +221,8 @@ router.get('/faculty/stats', protect, authorize('faculty'), async (req, res) => 
       progressRecords.forEach(p => {
         const perc = p.totalAssignments > 0 ? (p.completedAssignments / p.totalAssignments) * 100 : 0;
         totalProgress += perc;
-        totalSustainability += p.sustainabilityScore || 0;
+        // Use the unified global sustainability score from the student's profile
+        totalSustainability += p.student?.academicInfo?.overallSustainability || 0;
         totalGrade += p.overallGrade || 0;
       });
     }
@@ -238,7 +240,7 @@ router.get('/faculty/stats', protect, authorize('faculty'), async (req, res) => 
         if (cProgress.length > 0) {
           cProgress.forEach(p => {
             cTotalProg += p.totalAssignments > 0 ? (p.completedAssignments / p.totalAssignments) * 100 : 0;
-            cTotalSustain += p.sustainabilityScore || 0;
+            cTotalSustain += p.student?.academicInfo?.overallSustainability || 0;
           });
         }
         return {
@@ -251,12 +253,70 @@ router.get('/faculty/stats', protect, authorize('faculty'), async (req, res) => 
         };
       }))
     };
-    
     res.status(200).json({
       success: true,
       data: stats
     });
     
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @route   POST /api/courses/:id/materials
+// @desc    Add course material
+// @access  Private/Faculty,Admin
+router.post('/:id/materials', protect, authorize('faculty', 'admin'), async (req, res) => {
+  try {
+    const { title, fileUrl } = req.body;
+    const course = await Course.findById(req.params.id);
+
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // Check if user is course instructor or admin
+    if (course.instructor.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized to add materials to this course' });
+    }
+
+    course.materials.push({ title, fileUrl });
+    await course.save();
+
+    res.status(200).json({
+      success: true,
+      data: course,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @route   DELETE /api/courses/:id/materials/:materialId
+// @desc    Delete course material
+// @access  Private/Faculty,Admin
+router.delete('/:id/materials/:materialId', protect, authorize('faculty', 'admin'), async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id);
+
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // Check if user is course instructor or admin
+    if (course.instructor.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized to delete materials from this course' });
+    }
+
+    course.materials = course.materials.filter(
+      (m) => m._id.toString() !== req.params.materialId
+    );
+    await course.save();
+
+    res.status(200).json({
+      success: true,
+      data: course,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

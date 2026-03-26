@@ -4,7 +4,7 @@ import '../styles/login.css';
 import { authAPI } from '../services/api';
 
 export default function Login() {
-  const { login, loading, error } = useAuth();
+  const { login, error } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [selectedRole, setSelectedRole] = useState('student');
   const [email, setEmail] = useState('');
@@ -20,6 +20,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSignUpLoading, setIsSignUpLoading] = useState(false);
+  const [isLoginLoading, setIsLoginLoading] = useState(false);
 
   const handleRoleSelect = (role) => {
     setSelectedRole(role);
@@ -42,9 +43,15 @@ export default function Login() {
       return;
     }
 
-    const success = login(email, password, selectedRole);
-    if (!success) {
-      setLoginError(error || 'Login failed. Please try again.');
+    setIsLoginLoading(true);
+    const result = await login(email, password, selectedRole);
+    setIsLoginLoading(false);
+    if (!result.success) {
+      if (result.message && result.message.toLowerCase().includes('blocked')) {
+        setLoginError('You are blocked. Contact your admin.');
+      } else {
+        setLoginError(result.message || 'Login failed. Please try again.');
+      }
     }
   };
 
@@ -167,7 +174,7 @@ export default function Login() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder={`Enter your ${selectedRole} email`}
-                    disabled={loading}
+                    disabled={isLoginLoading}
                     required
                   />
                 </div>
@@ -181,7 +188,7 @@ export default function Login() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Enter your password"
-                      disabled={loading}
+                      disabled={isLoginLoading}
                       required
                     />
                     <button
@@ -201,7 +208,7 @@ export default function Login() {
                       type="checkbox"
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
-                      disabled={loading}
+                      disabled={isLoginLoading}
                     />
                     <span>Remember me</span>
                   </label>
@@ -213,9 +220,9 @@ export default function Login() {
                 <button
                   type="submit"
                   className="login-button"
-                  disabled={loading}
+                  disabled={isLoginLoading}
                 >
-                  {loading ? (
+                  {isLoginLoading ? (
                     <>
                       <span className="loading-spinner"></span>
                       Logging in...

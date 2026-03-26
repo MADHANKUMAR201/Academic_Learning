@@ -96,6 +96,14 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    // Check if user is active
+    if (user.isActive === false) {
+      return res.status(403).json({ 
+        success: false,
+        message: 'You are blocked. Contact your admin.' 
+      });
+    }
+
     // Generate token
     const token = generateToken(user._id, user.email, user.role);
 

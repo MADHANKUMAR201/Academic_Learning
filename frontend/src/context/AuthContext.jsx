@@ -31,7 +31,6 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password, role) => {
     setError(null);
-    setLoading(true);
 
     try {
       const response = await authAPI.login(email, password, role);
@@ -42,17 +41,14 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true);
         localStorage.setItem('user', JSON.stringify(response.user));
         localStorage.setItem('token', response.token);
-        setLoading(false);
-        return true;
+        return { success: true };
       } else {
         setError(response.message || 'Login failed');
-        setLoading(false);
-        return false;
+        return { success: false, message: response.message || 'Login failed' };
       }
     } catch (err) {
       setError(err.message || 'An error occurred during login');
-      setLoading(false);
-      return false;
+      return { success: false, message: err.message || 'An error occurred' };
     }
   };
 

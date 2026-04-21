@@ -124,6 +124,72 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// @route   POST /api/auth/google
+// @desc    Login or Register user with Google
+// @access  Public
+router.post('/google', async (req, res) => {
+  try {
+    const { token, role } = req.body;
+    
+    if (!token || !role) {
+      return res.status(400).json({ message: 'Token and role are required' });
+    }
+
+    // Fetch user details from Google using the access token
+    const googleRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    
+    if (!googleRes.ok) {
+      return res.status(401).json({ message: 'Invalid Google token' });
+    }
+    
+    const googleData = await googleRes.json();
+    const { email, name, sub: googleId } = googleData;
+
+    // See if user exists
+    let user = await User.findOne({ email });
+
+    if (user) {
+      // Check role mismatch
+      if (user.role !== role) {
+        return res.status(401).json({ message: `This email is already registered as a ${user.role}. Please select ${user.role}.` });
+      }
+      if (user.isActive === false) {
+        return res.status(403).json({ success: false, message: 'You are blocked. Contact your admin.' });
+      }
+    } else {
+      // Create user if they don't exist
+      user = new User({
+        name,
+        email,
+        password: googleId + process.env.JWT_SECRET, // Dummy complex password
+        role,
+        studentId: role === 'student' ? 'GOOG-' + googleId.substring(0, 6) : undefined
+      });
+      await user.save();
+    }
+
+    // Generate token
+    const jwtToken = generateToken(user._id, user.email, user.role);
+
+    res.status(200).json({
+      success: true,
+      token: jwtToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        department: user.department,
+        academicInfo: user.academicInfo,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // @route   GET /api/auth/me
 // @desc    Get current logged in user
 // @access  Private

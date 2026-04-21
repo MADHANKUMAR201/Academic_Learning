@@ -172,6 +172,19 @@ router.get('/analytics/student-performance', protect, authorize('admin'), async 
           avgGrade: { $avg: '$overallGrade' },
           avgAttendance: { $avg: '$attendancePercentage' },
           avgSustainability: { $avg: '$sustainabilityScore' },
+          avgProgress: { 
+            $avg: { 
+              $multiply: [
+                { 
+                  $divide: [
+                    '$completedAssignments', 
+                    { $cond: [ { $eq: ['$totalAssignments', 0] }, 1, '$totalAssignments' ] }
+                  ] 
+                }, 
+                100
+              ] 
+            } 
+          },
           totalRecords: { $sum: 1 },
         },
       },
@@ -213,6 +226,49 @@ router.get('/analytics/course-enrollment', protect, authorize('admin'), async (r
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// @route   GET /api/admin/analytics/course-stats-detailed
+// @desc    Get detailed course stats for all courses
+// @access  Private/Admin
+router.get('/analytics/course-stats-detailed', protect, authorize('admin'), async (req, res) => {
+  try {
+    const courses = await Course.find();
+    const courseIds = courses.map(c => c._id);
+    
+    // Get all progress records for all courses
+    const progressRecords = await Progress.find({ course: { $in: courseIds } })
+      .populate('student', 'academicInfo');
+    
+    const courseStats = await Promise.all(courses.map(async (c) => {
+      const cProgress = progressRecords.filter(p => p.course.toString() === c._id.toString());
+      let cTotalProg = 0;
+      let cTotalSustain = 0;
+      
+      if (cProgress.length > 0) {
+        cProgress.forEach(p => {
+          cTotalProg += p.totalAssignments > 0 ? (p.completedAssignments / p.totalAssignments) * 100 : 0;
+          cTotalSustain += p.student?.academicInfo?.overallSustainability || 0;
+        });
+      }
+      
+      return {
+        _id: c._id,
+        code: c.code,
+        title: c.title,
+        students: c.students.length,
+        avgProgress: cProgress.length > 0 ? Math.round(cTotalProg / cProgress.length) : 0,
+        avgSustainability: cProgress.length > 0 ? Math.round(cTotalSustain / cProgress.length) : 0
+      };
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: courseStats
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 

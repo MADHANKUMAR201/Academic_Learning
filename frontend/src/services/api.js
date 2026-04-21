@@ -387,6 +387,13 @@ export const adminAPI = {
     return response.json();
   },
 
+  getDetailedCourseStats: async () => {
+    const response = await fetch(`${API_URL}/admin/analytics/course-stats-detailed`, {
+      headers: getAuthHeader(),
+    });
+    return response.json();
+  },
+
   updateStudentAttendance: async (studentId, attendancePercentage) => {
     const response = await fetch(`${API_URL}/admin/users/${studentId}/attendance`, {
       method: 'PUT',

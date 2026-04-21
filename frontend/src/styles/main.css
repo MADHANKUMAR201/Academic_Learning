@@ -2,40 +2,48 @@
    MAIN GLOBAL STYLES & VARIABLES
    ======================================== */
 
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
 :root {
-  --primary-color: #6366f1;
+  /* Ultra-modern SaaS Palette */
+  --primary-color: #6366f1; /* Vibrant Indigo */
   --primary-dark: #4f46e5;
   --primary-light: #818cf8;
-  --secondary-color: #10b981;
-  --secondary-light: #34d399;
-  --accent-color: #f59e0b;
-  --accent-dark: #d97706;
+  --secondary-color: #8b5cf6; /* Rich Violet */
+  --secondary-light: #a78bfa;
+  --accent-color: #f43f5e; /* Rose */
+  --accent-dark: #e11d48;
   --danger-color: #ef4444;
-  --warning-color: #f97316;
+  --warning-color: #f59e0b;
   --success-color: #10b981;
   
-  --bg-primary: #ffffff;
-  --bg-secondary: #f9fafb;
-  --bg-tertiary: #f3f4f6;
-  --bg-dark: #1f2937;
+  /* True Dark Mode Backgrounds */
+  --bg-primary: #0f172a;    /* Deep Slate / Cards */
+  --bg-secondary: #020617;  /* True Dark / Main app background */
+  --bg-tertiary: #1e293b;   /* Highlight Slate */
+  --bg-dark: #cbd5e1;
   
-  --text-primary: #1f2937;
-  --text-secondary: #6b7280;
-  --text-light: #9ca3af;
+  /* High Contrast Typography */
+  --text-primary: #f8fafc;  /* Crisp White */
+  --text-secondary: #94a3b8; /* Soft Gray */
+  --text-light: #475569;
   --text-white: #ffffff;
   
-  --border-color: #e5e7eb;
-  --border-light: #f3f4f6;
+  /* Refined Borders for Dark Mode */
+  --border-color: #334155;
+  --border-light: #1e293b;
   
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  /* Soft, Layered Shadows for Dark Mode */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.7), 0 10px 10px -5px rgba(0, 0, 0, 0.5);
   
-  --border-radius-sm: 0.375rem;
-  --border-radius-md: 0.5rem;
-  --border-radius-lg: 0.75rem;
-  --border-radius-xl: 1rem;
+  /* Smoother Curves */
+  --border-radius-sm: 0.5rem;
+  --border-radius-md: 0.75rem;
+  --border-radius-lg: 1rem;
+  --border-radius-xl: 1.5rem;
   
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -51,7 +59,7 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -95,13 +103,15 @@ body {
    ======================================== */
 
 .header {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(2, 6, 23, 0.9) 100%);
   color: var(--text-white);
-  padding: 1.5rem 2rem;
-  box-shadow: var(--shadow-md);
+  padding: 1.25rem 2rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   position: sticky;
   top: 0;
   z-index: 99;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
 }
 
 .header-container {
@@ -535,8 +545,6 @@ body {
 .btn-start,
 .btn-save,
 .btn-add-course,
-.btn-edit-course,
-.btn-view-students,
 .btn-add-assignment {
   padding: 0.75rem 1.5rem;
   background-color: var(--primary-color);
@@ -556,9 +564,7 @@ body {
 .btn-view:hover,
 .btn-start:hover,
 .btn-save:hover,
-.btn-add-course:hover,
-.btn-edit-course:hover,
-.btn-view-students:hover {
+.btn-add-course:hover {
   background-color: var(--primary-dark);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
@@ -826,19 +832,40 @@ body {
 .activity-item,
 .update-item {
   display: flex;
-  gap: 1rem;
-  padding: 1rem;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
   background-color: var(--bg-tertiary);
   border-radius: var(--border-radius-md);
   border-left: 4px solid var(--primary-color);
+  transition: background 0.2s ease;
+}
+
+.update-item:hover {
+  background-color: rgba(99, 102, 241, 0.06);
+}
+
+.update-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
 }
 
 .activity-date,
 .update-timestamp {
   font-weight: 600;
   color: var(--text-secondary);
-  font-size: 0.85rem;
-  min-width: 80px;
+  font-size: 0.8rem;
+  min-width: 90px;
+  white-space: nowrap;
+}
+
+.update-event {
+  flex: 1;
+  color: var(--text-primary);
+  font-size: 0.92rem;
+  font-weight: 500;
 }
 
 .activity-details {

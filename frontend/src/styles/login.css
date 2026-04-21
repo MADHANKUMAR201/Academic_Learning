@@ -4,17 +4,17 @@
 
 /* Root Variables */
 :root {
-  --primary-color: #003d7a;
-  --primary-light: #0052a3;
-  --secondary-color: #666666;
-  --accent-color: #0078d4;
-  --error-color: #d32f2f;
-  --success-color: #388e3c;
-  --background-color: #f5f5f5;
-  --border-color: #ddd;
-  --text-primary: #1e1e1e;
-  --text-secondary: #666666;
-  --white: #ffffff;
+  --primary-color: #6366f1;
+  --primary-light: #818cf8;
+  --secondary-color: #8b5cf6;
+  --accent-color: #f43f5e;
+  --error-color: #ef4444;
+  --success-color: #10b981;
+  --background-color: #020617; /* True Dark */
+  --border-color: #334155;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --white: #0f172a; /* Slate 900 for elevated surfaces */
 }
 
 /* Reset and Base Styles */
@@ -25,7 +25,7 @@
 }
 
 body {
-  font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -48,37 +48,40 @@ body {
   top: 0;
   left: 0;
   z-index: 0;
-  background: linear-gradient(135deg, rgba(0, 61, 122, 0.05) 0%, rgba(0, 120, 212, 0.05) 100%);
+  background: var(--background-color);
+  overflow: hidden;
 }
 
 .background-shape {
   position: absolute;
   border-radius: 50%;
-  opacity: 0.03;
+  filter: blur(80px);
+  opacity: 0.4;
 }
 
 .shape-1 {
-  width: 400px;
-  height: 400px;
-  background: var(--primary-color);
-  top: -100px;
-  left: -100px;
+  width: 500px;
+  height: 500px;
+  background: var(--primary-light);
+  top: -150px;
+  left: -150px;
 }
 
 .shape-2 {
-  width: 300px;
-  height: 300px;
-  background: var(--accent-color);
-  bottom: -80px;
-  right: -80px;
+  width: 400px;
+  height: 400px;
+  background: var(--secondary-color);
+  bottom: -150px;
+  right: -100px;
 }
 
 .shape-3 {
-  width: 200px;
-  height: 200px;
-  background: var(--primary-light);
-  top: 50%;
-  right: 10%;
+  width: 300px;
+  height: 300px;
+  background: var(--accent-color);
+  top: 40%;
+  left: 60%;
+  opacity: 0.2;
 }
 
 .login-content {
@@ -93,13 +96,14 @@ body {
 }
 
 .login-box {
-  background: var(--white);
-  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.85); /* Deep Slate translucent */
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
   padding: 3rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
   width: 100%;
-  max-width: 430px;
-  border: 1px solid var(--border-color);
+  max-width: 440px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* Login Header */
@@ -148,11 +152,11 @@ body {
 
 .role-btn {
   padding: 1rem 0.5rem;
-  border: 2px solid var(--border-color);
+  border: 1.5px solid var(--border-color);
   background-color: var(--white);
-  border-radius: 6px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-weight: 600;
   color: var(--text-secondary);
   font-size: 0.9rem;
@@ -162,14 +166,16 @@ body {
 }
 
 .role-btn:hover {
-  border-color: var(--accent-color);
-  background-color: rgba(0, 120, 212, 0.02);
+  border-color: var(--primary-light);
+  transform: translateY(-2px);
+  background-color: rgba(99, 102, 241, 0.02);
 }
 
 .role-btn.active {
   border-color: var(--primary-color);
-  background-color: rgba(0, 61, 122, 0.08);
+  background-color: rgba(99, 102, 241, 0.08);
   color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
 }
 
 .role-name {
@@ -197,20 +203,20 @@ body {
 }
 
 .form-group input {
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
+  padding: 0.85rem 1rem;
+  border: 1.5px solid var(--border-color);
+  border-radius: 10px;
   font-size: 0.95rem;
   color: var(--text-primary);
   background-color: var(--white);
-  transition: border-color 0.3s ease;
+  transition: all 0.3s ease;
   font-family: inherit;
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.08);
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
 
 .form-group input:disabled {
@@ -316,27 +322,28 @@ body {
 /* Login Button */
 .login-button {
   width: 100%;
-  padding: 0.875rem 1.5rem;
-  background-color: var(--primary-color);
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 12px;
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 1rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);
 }
 
 .login-button:hover:not(:disabled) {
-  background-color: var(--primary-light);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 61, 122, 0.2);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+  opacity: 0.95;
 }
 
 .login-button:active:not(:disabled) {
@@ -346,6 +353,57 @@ body {
 .login-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Login Separator */
+.login-separator {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 1.5rem 0;
+  color: #999;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.login-separator::before,
+.login-separator::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.login-separator span {
+  padding: 0 10px;
+}
+
+/* Google Sign-In Button */
+.google-button {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  background-color: var(--white);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.google-button:hover {
+  background-color: var(--background-color);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.google-icon {
+  width: 20px;
+  height: 20px;
 }
 
 .loading-spinner {

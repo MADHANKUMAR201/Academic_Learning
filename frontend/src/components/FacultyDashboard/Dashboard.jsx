@@ -1,7 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { courseAPI } from '../../services/api';
+import { courseAPI, assignmentAPI } from '../../services/api';
 import '../../../src/styles/components.css';
+
+// Helper: format a date to "X minutes/hours/days ago" or full date
+function timeAgo(dateStr) {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  return date.toLocaleDateString();
+}
+
+// Icon map for update types
+const UPDATE_ICONS = {
+  submission: '📝',
+  graded:     '✅',
+  assignment: '📋',
+  enrollment: '👥',
+  system:     '⚙️',
+};
 
 export default function FacultyDashboard() {
   const { user } = useAuth();
@@ -12,6 +37,7 @@ export default function FacultyDashboard() {
     avgSustainability: 0,
     courseStats: []
   });
+  const [recentUpdates, setRecentUpdates] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,10 +46,79 @@ export default function FacultyDashboard() {
 
   const fetchStats = async () => {
     try {
-      const response = await courseAPI.getFacultyStats();
-      if (response.success) {
-        setStats(response.data);
+      const [statsRes, assignmentsRes] = await Promise.all([
+        courseAPI.getFacultyStats(),
+        assignmentAPI.getFacultyAssignments(),
+      ]);
+
+      if (statsRes.success) {
+        setStats(statsRes.data);
       }
+
+      // Build real recent updates
+      const updates = [];
+
+      if (assignmentsRes.success && assignmentsRes.data) {
+        const assignments = assignmentsRes.data;
+
+        // New assignments created (sorted by createdAt)
+        assignments
+          .filter(a => a.createdAt)
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 2)
+          .forEach(a => {
+            updates.push({
+              timestamp: a.createdAt,
+              type: 'assignment',
+              event: `Assignment created: "${a.title}" in ${a.course?.code || 'course'}`,
+            });
+          });
+
+        // Recent submissions across all assignments
+        assignments.forEach(a => {
+          (a.submissions || []).forEach(sub => {
+            if (sub.submissionDate) {
+              if (sub.status === 'graded') {
+                updates.push({
+                  timestamp: sub.submissionDate,
+                  type: 'graded',
+                  event: `"${a.title}" graded for ${sub.student?.name || 'a student'} — Score: ${sub.score}/${a.maxScore}`,
+                });
+              } else {
+                updates.push({
+                  timestamp: sub.submissionDate,
+                  type: 'submission',
+                  event: `${sub.student?.name || 'A student'} submitted "${a.title}"`,
+                });
+              }
+            }
+          });
+        });
+      }
+
+      // Add enrollment update from course stats if available
+      if (statsRes.success && statsRes.data?.courseStats?.length > 0) {
+        statsRes.data.courseStats.forEach(course => {
+          if (course.students > 0) {
+            updates.push({
+              timestamp: new Date(Date.now() - 86400000).toISOString(), // yesterday as baseline
+              type: 'enrollment',
+              event: `${course.students} student${course.students > 1 ? 's' : ''} enrolled in ${course.code}`,
+            });
+          }
+        });
+      }
+
+      // Sort all updates by timestamp desc, take top 6
+      const sorted = updates
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        .slice(0, 6);
+
+      setRecentUpdates(
+        sorted.length > 0
+          ? sorted
+          : [{ timestamp: new Date().toISOString(), type: 'system', event: 'No recent activity yet.' }]
+      );
     } catch (err) {
       console.error('Failed to fetch faculty stats:', err);
     } finally {
@@ -37,11 +132,6 @@ export default function FacultyDashboard() {
   };
 
   const courseStats = stats.courseStats || [];
-
-  const recentUpdates = [
-    { timestamp: new Date().toLocaleString(), event: 'Dashboard stats synchronized with actual class progress' },
-    { timestamp: 'Just now', event: 'Real-time student enrollment updated' },
-  ];
 
   if (loading) return <div className="loading">Loading dashboard...</div>;
 
@@ -119,7 +209,8 @@ export default function FacultyDashboard() {
         <div className="updates-list">
           {recentUpdates.map((update, idx) => (
             <div key={idx} className="update-item">
-              <span className="update-timestamp">{update.timestamp}</span>
+              <span className="update-icon">{UPDATE_ICONS[update.type] || '🔔'}</span>
+              <span className="update-timestamp">{timeAgo(update.timestamp)}</span>
               <span className="update-event">{update.event}</span>
             </div>
           ))}

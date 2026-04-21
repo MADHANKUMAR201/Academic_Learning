@@ -260,12 +260,19 @@ export default function FacultyCourses() {
               <h3>{course.code}</h3>
               <div className="header-right">
                 <span className="status-badge">{course.isActive ? 'Active' : 'Inactive'}</span>
-                <button 
-                  className="btn-delete-course-small" 
+                <button
+                  className="btn-delete-course-small"
                   onClick={() => handleDelete(course._id)}
                   title="Delete Course"
                 >
-                  🗑️
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    {/* Lid handle */}
+                    <path d="M9 3h6a1 1 0 0 1 1 1H8a1 1 0 0 1 1-1z"/>
+                    {/* Lid bar */}
+                    <rect x="3" y="5" width="18" height="2" rx="1"/>
+                    {/* Bin body */}
+                    <path d="M5 8l1.5 13A1 1 0 0 0 7.5 22h9a1 1 0 0 0 1-.87L19 8H5zm4 2h1l.5 9H9.5L9 10zm5 0h1l-.5 9h-1l.5-9z"/>
+                  </svg>
                 </button>
               </div>
             </div>

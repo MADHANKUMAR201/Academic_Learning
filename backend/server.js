@@ -54,7 +54,15 @@ app.use('/api/progress', progressRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/upload', uploadRoutes);
 
-// Basic route
+// API Health Check
+app.get('/api', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Academic Learning API is live and ready!'
+  });
+});
+
+// Basic root route
 app.get('/', (req, res) => {
   res.json({
     message: 'Academic Learning Sustainability Platform API',

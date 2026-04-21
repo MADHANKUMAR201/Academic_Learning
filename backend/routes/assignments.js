@@ -24,7 +24,7 @@ router.get('/faculty', protect, authorize('faculty'), async (req, res) => {
 
     // Get assignments for those courses
     const assignments = await Assignment.find({ course: { $in: courseIds } })
-      .populate('course', 'title code')
+      .populate('course', 'title code students')
       .populate('submissions.student', 'name email')
       .sort({ createdAt: -1 });
 
